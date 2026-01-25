@@ -1,0 +1,1 @@
+ALTER TABLE "applications" ADD COLUMN "is_live_deployment" boolean DEFAULT false NOT NULL;

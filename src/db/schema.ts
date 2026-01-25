@@ -11,6 +11,8 @@ import {
   integer,
   jsonb,
   pgEnum,
+  check,
+  bigint,
 } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
@@ -1234,5 +1236,285 @@ export const invoicesRelations = relations(invoices, ({ one }) => ({
   billingAccount: one(billingAccounts, {
     fields: [invoices.billingAccountId],
     references: [billingAccounts.id],
+  }),
+}));
+
+// Extension enums
+export const extensionCategoryEnum = pgEnum("extension_category", [
+  "Security",
+  "Containers",
+  "Database",
+  "Web Server",
+  "Maintenance",
+  "Monitoring",
+  "Storage",
+  "Network",
+  "Development",
+  "Other",
+  "Media",
+  "Game",
+  "Utility",
+  "Productivity",
+  "Social",
+]);
+
+export const validationStatusEnum = pgEnum("validation_status", [
+  "not_validated",
+  "valid",
+  "invalid",
+]);
+
+export const executionStatusEnum = pgEnum("execution_status", [
+  "pending",
+  "running",
+  "completed",
+  "failed",
+]);
+
+export const extensionTypeEnum = pgEnum("extension_type", ["install", "run"]);
+
+// Extensions table
+export const extensions = pgTable(
+  "extensions",
+  {
+    id: uuid("id")
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey(),
+    extensionId: varchar("extension_id", { length: 50 }).notNull().unique(),
+    name: varchar("name", { length: 100 }).notNull(),
+    description: text("description").notNull(),
+    author: varchar("author", { length: 50 }).notNull(),
+    icon: varchar("icon", { length: 10 }).notNull(),
+    category: extensionCategoryEnum("category").notNull(),
+    extensionType: extensionTypeEnum("extension_type")
+      .default("run")
+      .notNull(),
+    version: varchar("version", { length: 20 }),
+    isVerified: boolean("is_verified").default(false).notNull(),
+    featured: boolean("featured").default(false).notNull(),
+    parentExtensionId: uuid("parent_extension_id").references(
+      () => extensions.id,
+      { onDelete: "set null" },
+    ),
+    yamlContent: text("yaml_content").notNull(),
+    parsedContent: jsonb("parsed_content").notNull(),
+    contentHash: varchar("content_hash", { length: 64 }).notNull(),
+    validationStatus: validationStatusEnum("validation_status").default(
+      "not_validated",
+    ),
+    validationErrors: jsonb("validation_errors"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_extensions_category").on(table.category),
+    index("idx_extensions_verified").on(table.isVerified),
+    index("idx_extensions_validation_status").on(table.validationStatus),
+    index("idx_extensions_created").on(table.createdAt),
+    index("idx_extensions_extension_id").on(table.extensionId),
+    index("idx_extensions_deleted_at").on(table.deletedAt),
+    index("idx_extensions_extension_type").on(table.extensionType),
+    index("idx_extensions_parent_extension_id").on(table.parentExtensionId),
+    index("idx_extensions_featured").on(table.featured),
+    check("valid_extension_id", sql`extension_id ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$'`),
+    check(
+      "valid_version",
+      sql`version IS NULL OR version ~ '^\d+\.\d+\.\d+(-[a-zA-Z0-9\-]+)?$'`,
+    ),
+    check(
+      "description_length",
+      sql`LENGTH(description) BETWEEN 10 AND 2000`,
+    ),
+  ],
+);
+
+// Extension variables table
+export const extensionVariables = pgTable(
+  "extension_variables",
+  {
+    id: uuid("id")
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey(),
+    extensionId: uuid("extension_id")
+      .notNull()
+      .references(() => extensions.id, { onDelete: "cascade" }),
+    variableName: varchar("variable_name", { length: 100 }).notNull(),
+    variableType: varchar("variable_type", { length: 20 }).notNull(),
+    description: text("description"),
+    defaultValue: jsonb("default_value"),
+    isRequired: boolean("is_required").default(false),
+    validationPattern: varchar("validation_pattern", { length: 500 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_extension_variables_extension").on(table.extensionId),
+    uniqueIndex("idx_extension_variables_unique").on(
+      table.extensionId,
+      table.variableName,
+    ),
+    check(
+      "valid_variable_name",
+      sql`variable_name ~ '^[a-zA-Z_][a-zA-Z0-9_]*$'`,
+    ),
+    check(
+      "valid_variable_type",
+      sql`variable_type IN ('string', 'integer', 'boolean', 'array')`,
+    ),
+  ],
+);
+
+// Extension executions table
+export const extensionExecutions = pgTable(
+  "extension_executions",
+  {
+    id: uuid("id")
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey(),
+    extensionId: uuid("extension_id")
+      .notNull()
+      .references(() => extensions.id, { onDelete: "cascade" }),
+    serverHostname: varchar("server_hostname", { length: 255 }),
+    variableValues: jsonb("variable_values"),
+    status: executionStatusEnum("status").default("pending"),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    exitCode: integer("exit_code"),
+    errorMessage: text("error_message"),
+    executionLog: text("execution_log"),
+    logSeq: bigint("log_seq", { mode: "number" }).default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_extension_executions_extension").on(table.extensionId),
+    index("idx_extension_executions_status").on(table.status),
+  ],
+);
+
+// Execution steps table
+export const executionSteps = pgTable(
+  "execution_steps",
+  {
+    id: uuid("id")
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey(),
+    executionId: uuid("execution_id")
+      .notNull()
+      .references(() => extensionExecutions.id, { onDelete: "cascade" }),
+    stepName: varchar("step_name", { length: 200 }).notNull(),
+    phase: varchar("phase", { length: 20 }).notNull(),
+    stepOrder: integer("step_order").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    status: executionStatusEnum("status").default("pending"),
+    exitCode: integer("exit_code"),
+    output: text("output"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_execution_steps_execution").on(table.executionId),
+    check(
+      "valid_phase",
+      sql`phase IN ('pre_install', 'install', 'post_install', 'run', 'validate')`,
+    ),
+  ],
+);
+
+// Extension logs table
+export const extensionLogs = pgTable(
+  "extension_logs",
+  {
+    id: uuid("id")
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey(),
+    executionId: uuid("execution_id")
+      .notNull()
+      .references(() => extensionExecutions.id, { onDelete: "cascade" }),
+    stepId: uuid("step_id").references(() => executionSteps.id, {
+      onDelete: "set null",
+    }),
+    level: text("level").notNull(),
+    message: text("message").notNull(),
+    data: jsonb("data").default(sql`'{}'::jsonb`).notNull(),
+    sequence: bigint("sequence", { mode: "number" }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_extension_logs_exec_seq").on(table.executionId, table.sequence),
+    index("idx_extension_logs_exec_created").on(
+      table.executionId,
+      table.createdAt,
+    ),
+  ],
+);
+
+// Extension relations
+export const extensionsRelations = relations(extensions, ({ one, many }) => ({
+  parentExtension: one(extensions, {
+    fields: [extensions.parentExtensionId],
+    references: [extensions.id],
+    relationName: "parent",
+  }),
+  childExtensions: many(extensions, {
+    relationName: "parent",
+  }),
+  variables: many(extensionVariables),
+  executions: many(extensionExecutions),
+}));
+
+export const extensionVariablesRelations = relations(
+  extensionVariables,
+  ({ one }) => ({
+    extension: one(extensions, {
+      fields: [extensionVariables.extensionId],
+      references: [extensions.id],
+    }),
+  }),
+);
+
+export const extensionExecutionsRelations = relations(
+  extensionExecutions,
+  ({ one, many }) => ({
+    extension: one(extensions, {
+      fields: [extensionExecutions.extensionId],
+      references: [extensions.id],
+    }),
+    steps: many(executionSteps),
+    logs: many(extensionLogs),
+  }),
+);
+
+export const executionStepsRelations = relations(
+  executionSteps,
+  ({ one, many }) => ({
+    execution: one(extensionExecutions, {
+      fields: [executionSteps.executionId],
+      references: [extensionExecutions.id],
+    }),
+    logs: many(extensionLogs),
+  }),
+);
+
+export const extensionLogsRelations = relations(extensionLogs, ({ one }) => ({
+  execution: one(extensionExecutions, {
+    fields: [extensionLogs.executionId],
+    references: [extensionExecutions.id],
+  }),
+  step: one(executionSteps, {
+    fields: [extensionLogs.stepId],
+    references: [executionSteps.id],
   }),
 }));
