@@ -21,6 +21,12 @@ export const auth = betterAuth({
   basePath: '/api/auth',
   secret: config.betterAuthSecret,
   trustedOrigins: config.corsAllowedOrigins,
+  emailAndPassword: {
+    enabled: true,
+    sendResetPassword: async ({ user, url, token }, request) => {
+      await emailService.sendResetPassword({ email: user.email, url, token });
+    },
+  },
   advanced: {
     database: {
       generateId: 'uuid', // Use UUIDs instead of nanoid for all IDs

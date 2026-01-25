@@ -14,6 +14,12 @@ export interface SendInvitationEmailParams {
   invitationUrl?: string;
 }
 
+export interface SendResetPasswordEmailParams {
+  email: string;
+  url: string;
+  token: string;
+}
+
 /**
  * Email service for sending various types of emails using Resend templates
  */
@@ -79,6 +85,28 @@ export class EmailService {
       console.log(`OTP email sent successfully to ${email} (type: ${type})`);
     } catch (error) {
       console.error(`Failed to send OTP email to ${email}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  async sendResetPassword(params: SendResetPasswordEmailParams): Promise<void> {
+    const { email, url } = params;
+
+    try {
+      // For password reset, we'll use inline HTML since it's URL-based, not OTP-based
+      const html = this.getResetPasswordHTML(url);
+      await resendService.sendEmail({
+        from: this.defaultFrom,
+        to: email,
+        subject: 'Reset your password',
+        html,
+      });
+      console.log(`Password reset email sent successfully to ${email}`);
+    } catch (error) {
+      console.error(`Failed to send password reset email to ${email}:`, error);
       throw error;
     }
   }
@@ -158,6 +186,32 @@ export class EmailService {
         </div>
         <p>This code will expire in 5 minutes.</p>
         <p>${footerText}</p>
+      </div>
+    `;
+  }
+
+  /**
+   * HTML for password reset emails
+   */
+  private getResetPasswordHTML(url: string): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #333; margin-bottom: 20px;">Reset Your Password</h2>
+        <p style="color: #666; font-size: 16px; margin-bottom: 20px;">
+          Click the button below to reset your password. This link will expire in 1 hour.
+        </p>
+        <p style="margin: 30px 0;">
+          <a href="${url}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold;">
+            Reset Password
+          </a>
+        </p>
+        <p style="color: #999; font-size: 12px; margin-top: 20px;">
+          If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
+        </p>
+        <p style="color: #999; font-size: 12px; margin-top: 10px;">
+          If the button doesn't work, copy and paste this link into your browser:<br>
+          <a href="${url}" style="color: #007bff; word-break: break-all;">${url}</a>
+        </p>
       </div>
     `;
   }
