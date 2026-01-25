@@ -47,9 +47,6 @@ try {
   process.exit(1);
 }
 
-// Override PORT to 8080 for auth service
-process.env.PORT = '8080';
-
 // Ensure secret manager env vars are passed to the process
 const secretManagerVars = [
   'SECRET_MANAGER_ENABLED',
