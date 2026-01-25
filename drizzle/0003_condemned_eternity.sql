@@ -80,7 +80,7 @@ CREATE TABLE "extensions" (
 	"deleted_at" timestamp with time zone,
 	CONSTRAINT "extensions_extension_id_unique" UNIQUE("extension_id"),
 	CONSTRAINT "valid_extension_id" CHECK (extension_id ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$'),
-	CONSTRAINT "valid_version" CHECK (version IS NULL OR version ~ '^d+.d+.d+(-[a-zA-Z0-9-]+)?$'),
+	CONSTRAINT "valid_version" CHECK (version IS NULL OR version ~ '^\d+\.\d+\.\d+(-[a-zA-Z0-9\-]+)?$'),
 	CONSTRAINT "description_length" CHECK (LENGTH(description) BETWEEN 10 AND 2000)
 );
 --> statement-breakpoint

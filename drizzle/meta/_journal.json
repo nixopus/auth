@@ -29,6 +29,13 @@
       "when": 1769347927267,
       "tag": "0003_condemned_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1737878400000,
+      "tag": "0004_fix_valid_version_constraint",
+      "breakpoints": true
     }
   ]
 }
