@@ -22,9 +22,13 @@ COPY --from=builder --chown=nixopus:nixopus /app/dist ./dist
 COPY --from=builder --chown=nixopus:nixopus /app/node_modules ./node_modules
 COPY --from=builder --chown=nixopus:nixopus /app/package.json ./package.json
 COPY --from=builder --chown=nixopus:nixopus /app/tsconfig.json ./tsconfig.json
+COPY --from=builder --chown=nixopus:nixopus /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder --chown=nixopus:nixopus /app/src/config.ts ./src/config.ts
+COPY --from=builder --chown=nixopus:nixopus /app/drizzle ./drizzle
+COPY --from=builder --chown=nixopus:nixopus /app/scripts/entrypoint.js ./scripts/entrypoint.js
 
 USER nixopus
 
 EXPOSE 8080
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "scripts/entrypoint.js"]
