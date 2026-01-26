@@ -16,7 +16,8 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN addgroup -S nixopus && adduser -S nixopus -G nixopus
+RUN apk add --no-cache wget && \
+    addgroup -S nixopus && adduser -S nixopus -G nixopus
 
 COPY --from=builder --chown=nixopus:nixopus /app/dist ./dist
 COPY --from=builder --chown=nixopus:nixopus /app/node_modules ./node_modules
