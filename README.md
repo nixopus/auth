@@ -15,9 +15,9 @@
    ```
 
 3. **Set up environment variables**
-  ```
-    cp .env.sample .env
-  ```
+   ```bash
+   cp .env.sample .env
+   ```
 4. **Run database migrations**
    ```bash
    npm run db:migrate
