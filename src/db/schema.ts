@@ -1293,7 +1293,7 @@ export const extensions = pgTable(
     isVerified: boolean("is_verified").default(false).notNull(),
     featured: boolean("featured").default(false).notNull(),
     parentExtensionId: uuid("parent_extension_id").references(
-      () => extensions.id,
+      (): any => extensions.id,
       { onDelete: "set null" },
     ),
     yamlContent: text("yaml_content").notNull(),
