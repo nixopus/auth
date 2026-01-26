@@ -1,6 +1,5 @@
 # Nixopus Authentication Service
 
-
 ## Installation
 
 1. **Clone the repository**
