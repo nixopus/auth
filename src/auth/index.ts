@@ -1,11 +1,11 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP, organization } from 'better-auth/plugins';
-import { db } from '../db';
-import { config } from '../config';
-import * as schema from '../db/schema';
+import { db } from '../db/index.js';
+import { config } from '../config.js';
+import * as schema from '../db/schema.js';
 import { randomUUID } from 'crypto';
-import { emailService } from '../services/email';
+import { emailService } from '../services/email.js';
 
 // Email sending function using Resend
 async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' }) {

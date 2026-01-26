@@ -1,4 +1,4 @@
-import { auth } from './index';
+import { auth } from './index.js';
 
 // Better Auth handler for HTTP requests
 export function authHandler(request: Request): Promise<Response> {

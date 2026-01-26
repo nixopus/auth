@@ -1,14 +1,14 @@
 // Initialize secrets before importing config
-import './init-secrets';
-import { waitForSecrets } from './init-secrets';
+import './init-secrets.js';
+import { waitForSecrets } from './init-secrets.js';
 
 // Wait for secrets to be loaded before proceeding with initialization
 await waitForSecrets();
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { config } from './config';
-import { authHandler } from './auth/handler';
+import { config } from './config.js';
+import { authHandler } from './auth/handler.js';
 
 const app = new Hono();
 

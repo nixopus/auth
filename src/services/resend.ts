@@ -1,5 +1,5 @@
 import { Resend } from 'resend';
-import { config } from '../config';
+import { config } from '../config.js';
 
 // Lazy initialization of Resend client
 let resendInstance: Resend | null = null;

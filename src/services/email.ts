@@ -1,6 +1,6 @@
-import { resendService, SendEmailParams } from './resend';
-import { config } from '../config';
-import { templateManager, TEMPLATE_IDS } from './templates';
+import { resendService, SendEmailParams } from './resend.js';
+import { config } from '../config.js';
+import { templateManager, TEMPLATE_IDS } from './templates.js';
 
 export interface SendOTPEmailParams {
   email: string;

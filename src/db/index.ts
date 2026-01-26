@@ -1,12 +1,12 @@
 // Wait for secrets to be loaded before initializing database connection
-import '../init-secrets';
-import { waitForSecrets } from '../init-secrets';
+import '../init-secrets.js';
+import { waitForSecrets } from '../init-secrets.js';
 await waitForSecrets();
 
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { config } from '../config';
-import * as schema from './schema';
+import { config } from '../config.js';
+import * as schema from './schema.js';
 
 // Lazy initialization of database pool to ensure secrets are loaded first
 let poolInstance: Pool | null = null;

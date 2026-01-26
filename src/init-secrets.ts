@@ -2,7 +2,7 @@
  * Initialize secrets from secret manager before application starts
  * This should be imported at the very beginning of the application entry point
  */
-import { loadSecretManagerConfig, createSecretManager, loadSecretsIntoEnv } from './secrets';
+import { loadSecretManagerConfig, createSecretManager, loadSecretsIntoEnv } from './secrets.js';
 
 let secretsInitialized = false;
 let secretsInitPromise: Promise<void> | null = null;

@@ -1,4 +1,4 @@
-import { resendService } from './resend';
+import { resendService } from './resend.js';
 
 /**
  * Template IDs - these should match the template names in Resend
