@@ -28,5 +28,5 @@ export const config = {
 
   // Resend configuration
   resendApiKey: process.env.RESEND_API_KEY || '',
-  resendFromEmail: process.env.RESEND_FROM_EMAIL || '',
+    resendFromEmail: process.env.RESEND_FROM_EMAIL || 'updates@updates.nixopus.com',
 } as const;
