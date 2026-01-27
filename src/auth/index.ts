@@ -31,21 +31,21 @@ export const auth = betterAuth({
     database: {
       generateId: 'uuid', // Use UUIDs instead of nanoid for all IDs
     },
-    // Enable cross-subdomain cookies to allow cookies to work across nixopus.com subdomains
-    // This is needed because cookies are set for auth.nixopus.com but requests come from view.nixopus.com
-    // In development (localhost), we disable this so cookies work on localhost
-    // In production, we enable it with .nixopus.com domain for cross-subdomain support
-    ...(config.isProduction
+    // Enable cross-subdomain cookies when cookie domain is configured
+    // This allows cookies to work across subdomains (e.g., auth.example.com to view.example.com)
+    // In development (localhost), cookie domain is not set, so cookies default to current host
+    ...(config.cookieDomain
       ? {
           crossSubDomainCookies: {
             enabled: true,
-            domain: '.nixopus.com', // Set to root domain to allow all subdomains
+            domain: config.cookieDomain, // Set from BETTER_AUTH_COOKIE_DOMAIN env var
           },
         }
       : {
-          // In development, don't set crossSubDomainCookies - cookies will default to current host (localhost)
-          // This allows cookies to work properly on localhost:3000 and localhost:8080
+          // In development or when cookie domain is not set, cookies default to current host
         }),
+    // Enable secure cookies when configured (required for HTTPS)
+    useSecureCookies: config.secureCookies,
   },
   plugins: [
     emailOTP({
