@@ -32,7 +32,7 @@ export const auth = betterAuth({
       generateId: 'uuid', // Use UUIDs instead of nanoid for all IDs
     },
     // Enable cross-subdomain cookies when cookie domain is configured
-    // This allows cookies to work across subdomains (e.g., auth.example.com → view.example.com)
+    // This allows cookies to work across subdomains (e.g., auth.example.com to view.example.com)
     // In development (localhost), cookie domain is not set, so cookies default to current host
     ...(config.cookieDomain
       ? {
