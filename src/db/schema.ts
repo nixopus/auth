@@ -1325,7 +1325,7 @@ export const extensions = pgTable(
     check("valid_extension_id", sql`extension_id ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$'`),
     check(
       "valid_version",
-      sql`version IS NULL OR version ~ '^\d+\.\d+\.\d+(-[a-zA-Z0-9\-]+)?$'`,
+      sql`version IS NULL OR version ~ $pattern$^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9\\-]+)?$$pattern$`,
     ),
     check(
       "description_length",
