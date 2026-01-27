@@ -54,14 +54,23 @@ The service will be available at `http://localhost:8080`
 The service supports configurable CORS policies. Default allowed origins include:
 - `http://localhost:3000` (development)
 - `http://localhost:7443` (development)
-- `https://app.nixopus.com` (production)
-- `https://view.nixopus.com` (production)
 
-To customize, set the `CORS_ALLOWED_ORIGINS` environment variable with comma-separated origins.
+To customize, set the `CORS_ALLOWED_ORIGINS` environment variable with comma-separated origins (e.g., `https://view.example.com,https://api.example.com`).
 
-### Cross-Subdomain Cookies
+### Cookie Configuration
 
-In production, the service automatically enables cross-subdomain cookies for the `.nixopus.com` domain, allowing authentication to work across subdomains (e.g., `auth.nixopus.com` → `app.nixopus.com`).
+For production deployments with custom domains, configure cookie settings:
+
+- `BETTER_AUTH_COOKIE_DOMAIN`: Base domain for cross-subdomain cookies (e.g., `.example.com`). When set, cookies will be shared across all subdomains.
+- `BETTER_AUTH_SECURE_COOKIES`: Set to `true` to enable Secure flag on cookies (required for HTTPS).
+
+Example:
+```env
+BETTER_AUTH_COOKIE_DOMAIN=.example.com
+BETTER_AUTH_SECURE_COOKIES=true
+```
+
+This allows authentication to work across subdomains (e.g., `auth.example.com` → `view.example.com`).
 
 ## 🔧 Development
 
