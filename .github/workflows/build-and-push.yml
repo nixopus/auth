@@ -1,5 +1,5 @@
 # Workflow: Build and Push Docker Container
-# Description: Builds and pushes Docker image for the Auth service whenever code is pushed to master branch.
+# Description: Builds and pushes Docker image for the Auth service whenever code is pushed to main branch.
 # Why: Provides reproducible, versioned container images for deployments.
 # Note: AMD64 and ARM64 builds run in parallel for faster builds, then merged into multi-platform manifests.
 
@@ -8,7 +8,7 @@ name: Build and Push Container
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 concurrency:
