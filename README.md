@@ -70,7 +70,7 @@ BETTER_AUTH_COOKIE_DOMAIN=.example.com
 BETTER_AUTH_SECURE_COOKIES=true
 ```
 
-This allows authentication to work across subdomains (e.g., `auth.example.com` → `view.example.com`).
+This allows authentication to work across subdomains (e.g., `auth.example.com` to `view.example.com`).
 
 ## 🔧 Development
 

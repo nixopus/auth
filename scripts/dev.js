@@ -41,7 +41,7 @@ await loadSecrets();
 
 // Now run migrations with secrets loaded
 try {
-  execSync('npm run db:migrate', { stdio: 'inherit', env: process.env });
+  execSync('bun run db:migrate', { stdio: 'inherit', env: process.env });
 } catch (error) {
   console.error('[Dev] ✗ Migrations failed:', error.message);
   process.exit(1);
@@ -66,7 +66,7 @@ secretManagerVars.forEach((key) => {
 });
 
 // Start the server
-const serverProcess = spawn('tsx', ['src/server.ts'], {
+const serverProcess = spawn('bun', ['run', 'src/server.ts'], {
   stdio: 'inherit',
   shell: true,
   env: authEnv,

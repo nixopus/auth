@@ -38,14 +38,12 @@ app.all('/api/auth/*', async (c) => {
   return authHandler(c.req.raw);
 });
 
-// Start server using @hono/node-server
-import { serve } from '@hono/node-server';
-
-serve({
-  fetch: app.fetch,
+// Start server using Bun's native server
+export default {
   port: config.port,
   hostname: config.host,
-}, (info) => {
-  console.log(`🚀 Auth service running on http://${info.address}:${info.port}`);
-  console.log(`📝 Better Auth endpoint: http://${info.address}:${info.port}/api/auth`);
-});
+  fetch: app.fetch,
+};
+
+console.log(`🚀 Auth service running on http://${config.host}:${config.port}`);
+console.log(`📝 Better Auth endpoint: http://${config.host}:${config.port}/api/auth`);
