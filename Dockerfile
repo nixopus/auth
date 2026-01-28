@@ -28,6 +28,7 @@ COPY --from=builder --chown=nixopus:nixopus /app/scripts/entrypoint.js ./scripts
 
 USER nixopus
 
-EXPOSE 8080
+
+EXPOSE 9090
 
 CMD ["bun", "run", "scripts/entrypoint.js"]
