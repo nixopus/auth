@@ -28,7 +28,6 @@ COPY --from=builder --chown=nixopus:nixopus /app/scripts/entrypoint.js ./scripts
 
 USER nixopus
 
-# Default to 9090, but can be overridden via PORT env var
 ENV PORT=9090
 
 EXPOSE 9090
