@@ -25,10 +25,13 @@ COPY --from=builder --chown=nixopus:nixopus /app/drizzle.config.ts ./drizzle.con
 COPY --from=builder --chown=nixopus:nixopus /app/src/config.ts ./src/config.ts
 COPY --from=builder --chown=nixopus:nixopus /app/drizzle ./drizzle
 COPY --from=builder --chown=nixopus:nixopus /app/scripts/entrypoint.js ./scripts/entrypoint.js
+COPY --from=builder --chown=nixopus:nixopus /app/scripts/healthcheck.js ./scripts/healthcheck.js
 
 USER nixopus
 
-
 EXPOSE 9090
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD bun run /app/scripts/healthcheck.js
 
 CMD ["bun", "run", "scripts/entrypoint.js"]
