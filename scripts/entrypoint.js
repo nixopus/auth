@@ -26,7 +26,7 @@ await loadSecrets();
 // Run migrations with secrets loaded
 console.log('[Entrypoint] Running database migrations...');
 try {
-  execSync('npm run db:migrate', { 
+  execSync('bun run db:migrate', { 
     stdio: 'inherit', 
     env: process.env,
     cwd: '/app'
@@ -41,7 +41,7 @@ try {
 console.log('[Entrypoint] Starting auth server...');
 import { spawn } from 'child_process';
 
-const serverProcess = spawn('node', ['dist/server.js'], {
+const serverProcess = spawn('bun', ['run', 'dist/server.js'], {
   stdio: 'inherit',
   shell: false,
   env: process.env,

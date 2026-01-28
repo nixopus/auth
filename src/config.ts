@@ -5,7 +5,7 @@ export const config = {
   isDevelopment: process.env.NODE_ENV !== 'production',
 
   // Server configuration
-  port: parseInt(process.env.PORT || '8080', 10),
+  port: parseInt(process.env.PORT || '9090', 10),
   host: process.env.HOST || '0.0.0.0',
 
   // Database/Storage configuration
