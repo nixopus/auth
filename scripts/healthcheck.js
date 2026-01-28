@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 // Healthcheck script for Docker
 const port = process.env.PORT || '9090';
-const url = `http://localhost:${port}/health`;
+const url = `http://127.0.0.1:${port}/health`;
 
 try {
   const response = await fetch(url, {
@@ -22,6 +22,6 @@ try {
     process.exit(1);
   }
 } catch (error) {
-  console.error(`Healthcheck failed:`, error.message);
+  console.error(`Healthcheck failed: ${error.name}: ${error.message}`);
   process.exit(1);
 }

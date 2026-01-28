@@ -14,6 +14,10 @@ FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PORT=9090
+
+# Install curl and wget for healthchecks
+RUN apk add --no-cache curl wget
 
 RUN addgroup -S nixopus && adduser -S nixopus -G nixopus
 
@@ -27,11 +31,13 @@ COPY --from=builder --chown=nixopus:nixopus /app/drizzle ./drizzle
 COPY --from=builder --chown=nixopus:nixopus /app/scripts/entrypoint.js ./scripts/entrypoint.js
 COPY --from=builder --chown=nixopus:nixopus /app/scripts/healthcheck.js ./scripts/healthcheck.js
 
+RUN chmod +x /app/scripts/healthcheck.js
+
 USER nixopus
 
 EXPOSE 9090
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD bun run /app/scripts/healthcheck.js
+  CMD /app/scripts/healthcheck.js
 
 CMD ["bun", "run", "scripts/entrypoint.js"]
