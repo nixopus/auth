@@ -1,23 +1,21 @@
-FROM node:22-alpine AS deps
-RUN apk add --no-cache libc6-compat
+FROM oven/bun:1-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --production=false
+COPY package.json bun.lockb* ./
+RUN bun install --frozen-lockfile
 
-FROM node:22-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN npm run build
+RUN bun run build
 
-FROM node:22-alpine AS runner
+FROM oven/bun:1-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-RUN apk add --no-cache wget && \
-    addgroup -S nixopus && adduser -S nixopus -G nixopus
+RUN addgroup -S nixopus && adduser -S nixopus -G nixopus
 
 COPY --from=builder --chown=nixopus:nixopus /app/dist ./dist
 COPY --from=builder --chown=nixopus:nixopus /app/node_modules ./node_modules
@@ -32,4 +30,4 @@ USER nixopus
 
 EXPOSE 8080
 
-CMD ["node", "scripts/entrypoint.js"]
+CMD ["bun", "run", "scripts/entrypoint.js"]
