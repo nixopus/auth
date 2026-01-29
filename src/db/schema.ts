@@ -837,6 +837,7 @@ export const organizationRelations = relations(organization, ({ many }) => ({
   liveDeploySessions: many(liveDeploySessions),
   featureFlags: many(featureFlags),
   organizationSettings: many(organizationSettings),
+  sshKeys: many(sshKeys),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -1516,5 +1517,50 @@ export const extensionLogsRelations = relations(extensionLogs, ({ one }) => ({
   step: one(executionSteps, {
     fields: [extensionLogs.stepId],
     references: [executionSteps.id],
+  }),
+}));
+
+export const sshKeys = pgTable(
+  "ssh_keys",
+  {
+    id: uuid("id")
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    publicKey: text("public_key"),
+    privateKeyEncrypted: text("private_key_encrypted"),
+    passwordEncrypted: text("password_encrypted"),
+    keyType: varchar("key_type", { length: 20 }).default("rsa"),
+    keySize: integer("key_size").default(4096),
+    fingerprint: varchar("fingerprint", { length: 255 }),
+    authMethod: varchar("auth_method", { length: 20 }).default("key").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("idx_ssh_keys_organization_id").on(table.organizationId),
+    index("idx_ssh_keys_is_active").on(table.isActive),
+    index("idx_ssh_keys_fingerprint").on(table.fingerprint),
+    index("idx_ssh_keys_deleted_at").on(table.deletedAt),
+    index("idx_ssh_keys_auth_method").on(table.authMethod),
+  ],
+);
+
+export const sshKeysRelations = relations(sshKeys, ({ one }) => ({
+  organization: one(organization, {
+    fields: [sshKeys.organizationId],
+    references: [organization.id],
   }),
 }));
