@@ -29,4 +29,11 @@ export const config = {
   // Resend configuration
   resendApiKey: process.env.RESEND_API_KEY || '',
   resendFromEmail: process.env.RESEND_FROM_EMAIL || 'updates@updates.nixopus.com',
+
+  // SSH configuration (for installer-generated SSH keys)
+  sshHost: process.env.SSH_HOST || '',
+  sshPort: parseInt(process.env.SSH_PORT || '22', 10),
+  sshUser: process.env.SSH_USER || 'root',
+  sshPrivateKey: process.env.SSH_PRIVATE_KEY || '',
+  sshPassword: process.env.SSH_PASSWORD || '',
 } as const;
