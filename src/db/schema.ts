@@ -811,6 +811,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
     fields: [user.id],
     references: [userPreferences.userId],
   }),
+  userProvisionDetails: many(userProvisionDetails),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -838,6 +839,7 @@ export const organizationRelations = relations(organization, ({ many }) => ({
   featureFlags: many(featureFlags),
   organizationSettings: many(organizationSettings),
   sshKeys: many(sshKeys),
+  userProvisionDetails: many(userProvisionDetails),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -1272,6 +1274,16 @@ export const executionStatusEnum = pgEnum("execution_status", [
   "failed",
 ]);
 
+export const provisionStatusEnum = pgEnum("provision_status", [
+  "pending",
+  "initializing",
+  "creating_container",
+  "configuring_ssh",
+  "setting_up_subdomain",
+  "completed",
+  "failed",
+]);
+
 export const extensionTypeEnum = pgEnum("extension_type", ["install", "run"]);
 
 // Extensions table
@@ -1567,3 +1579,59 @@ export const sshKeysRelations = relations(sshKeys, ({ one }) => ({
     references: [organization.id],
   }),
 }));
+
+export const userProvisionDetails = pgTable(
+  "user_provision_details",
+  {
+    id: uuid("id")
+      .default(sql`uuid_generate_v4()`)
+      .primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    lxdContainerName: varchar("lxd_container_name", { length: 255 }),
+    sshKeyId: uuid("ssh_key_id")
+      .references(() => sshKeys.id, { onDelete: "set null" }),
+    subdomain: varchar("subdomain", { length: 255 }),
+    status: provisionStatusEnum("status").default("pending").notNull(),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("idx_user_provision_details_user_id").on(table.userId),
+    index("idx_user_provision_details_organization_id").on(table.organizationId),
+    index("idx_user_provision_details_status").on(table.status),
+    index("idx_user_provision_details_ssh_key_id").on(table.sshKeyId),
+    uniqueIndex("idx_user_provision_details_user_org_unique").on(
+      table.userId,
+      table.organizationId,
+    ),
+  ],
+);
+
+export const userProvisionDetailsRelations = relations(
+  userProvisionDetails,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [userProvisionDetails.userId],
+      references: [user.id],
+    }),
+    organization: one(organization, {
+      fields: [userProvisionDetails.organizationId],
+      references: [organization.id],
+    }),
+    sshKey: one(sshKeys, {
+      fields: [userProvisionDetails.sshKeyId],
+      references: [sshKeys.id],
+    }),
+  }),
+);
