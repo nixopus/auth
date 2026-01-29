@@ -1,6 +1,14 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP, organization } from 'better-auth/plugins';
+import {
+  dodopayments,
+  checkout,
+  portal,
+  webhooks,
+  usage,
+} from '@dodopayments/better-auth';
+import DodoPayments from 'dodopayments';
 import { db } from '../db/index.js';
 import { config } from '../config.js';
 import * as schema from '../db/schema.js';
@@ -11,6 +19,12 @@ import { emailService } from '../services/email.js';
 async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' }) {
   await emailService.sendVerificationOTP({ email, otp, type });
 }
+
+// Initialize Dodo Payments client
+export const dodoPayments = new DodoPayments({
+  bearerToken: config.dodoPaymentsApiKey,
+  environment: config.dodoPaymentsEnvironment,
+});
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -67,6 +81,33 @@ export const auth = betterAuth({
         });
       },
     }),
+    // Dodo Payments plugin
+    ...(config.dodoPaymentsApiKey
+      ? [
+          dodopayments({
+            client: dodoPayments,
+            createCustomerOnSignUp: true,
+            use: [
+              checkout({
+                products: [
+                  // TODO: Add products here
+                ],
+                successUrl: '/dashboard/success',
+                authenticatedUsersOnly: true,
+              }),
+              portal(),
+              webhooks({
+                webhookKey: config.dodoPaymentsWebhookSecret,
+                onPayload: async (payload) => {
+                  console.log('Received Dodo Payments webhook:', payload.type);
+                  // Handle webhook events here
+                },
+              }),
+              usage(),
+            ],
+          }),
+        ]
+      : []),
   ],
   databaseHooks: {
     user: {
