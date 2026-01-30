@@ -1,6 +1,14 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { emailOTP, organization } from 'better-auth/plugins';
+import { emailOTP, organization, deviceAuthorization, bearer } from 'better-auth/plugins';
+import {
+  dodopayments,
+  checkout,
+  portal,
+  webhooks,
+  usage,
+} from '@dodopayments/better-auth';
+import DodoPayments from 'dodopayments';
 import { db } from '../db/index.js';
 import { config } from '../config.js';
 import * as schema from '../db/schema.js';
@@ -13,6 +21,11 @@ async function sendVerificationOTP({ email, otp, type }: { email: string; otp: s
   await emailService.sendVerificationOTP({ email, otp, type });
 }
 
+// Initialize Dodo Payments client
+export const dodoPayments = new DodoPayments({
+  bearerToken: config.dodoPaymentsApiKey,
+  environment: config.dodoPaymentsEnvironment,
+});
 async function createSSHKeyEntry(organizationId: string, userEmail: string): Promise<void> {
   const authMethod = config.sshPassword ? 'password' : 'key';
   
@@ -115,6 +128,45 @@ export const auth = betterAuth({
         });
       },
     }),
+    deviceAuthorization({
+      verificationUri: '/device',
+      expiresIn: '30m', // Device code expiration (30 minutes)
+      interval: '5s', // Polling interval (5 seconds)
+      userCodeLength: 8, // User code length (8 characters)
+      validateClient: async (clientId) => {
+        // Validate client IDs - allow 'nixopus-cli' or any client for now
+        // In production, you might want to check against a database of allowed clients
+        return clientId === 'nixopus-cli' || true; // Allow all for now, restrict later
+      },
+    }),
+    bearer(), // Enable Bearer token authentication for CLI and API access
+    // Dodo Payments plugin
+    ...(config.dodoPaymentsApiKey
+      ? [
+          dodopayments({
+            client: dodoPayments,
+            createCustomerOnSignUp: true,
+            use: [
+              checkout({
+                products: [
+                  // TODO: Add products here
+                ],
+                successUrl: '/dashboard/success',
+                authenticatedUsersOnly: true,
+              }),
+              portal(),
+              webhooks({
+                webhookKey: config.dodoPaymentsWebhookSecret,
+                onPayload: async (payload) => {
+                  console.log('Received Dodo Payments webhook:', payload.type);
+                  // Handle webhook events here
+                },
+              }),
+              usage(),
+            ],
+          }),
+        ]
+      : []),
   ],
   databaseHooks: {
     user: {
