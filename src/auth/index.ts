@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { emailOTP, organization } from 'better-auth/plugins';
+import { emailOTP, organization, deviceAuthorization, bearer } from 'better-auth/plugins';
 import {
   dodopayments,
   checkout,
@@ -81,6 +81,18 @@ export const auth = betterAuth({
         });
       },
     }),
+    deviceAuthorization({
+      verificationUri: '/device',
+      expiresIn: '30m', // Device code expiration (30 minutes)
+      interval: '5s', // Polling interval (5 seconds)
+      userCodeLength: 8, // User code length (8 characters)
+      validateClient: async (clientId) => {
+        // Validate client IDs - allow 'nixopus-cli' or any client for now
+        // In production, you might want to check against a database of allowed clients
+        return clientId === 'nixopus-cli' || true; // Allow all for now, restrict later
+      },
+    }),
+    bearer(), // Enable Bearer token authentication for CLI and API access
     // Dodo Payments plugin
     ...(config.dodoPaymentsApiKey
       ? [
