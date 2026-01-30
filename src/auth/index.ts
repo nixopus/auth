@@ -14,6 +14,7 @@ import { config } from '../config.js';
 import * as schema from '../db/schema.js';
 import { randomUUID } from 'crypto';
 import { emailService } from '../services/email.js';
+import { eq, and } from 'drizzle-orm';
 
 // Email sending function using Resend
 async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' }) {
@@ -25,6 +26,52 @@ export const dodoPayments = new DodoPayments({
   bearerToken: config.dodoPaymentsApiKey,
   environment: config.dodoPaymentsEnvironment,
 });
+async function createSSHKeyEntry(organizationId: string, userEmail: string): Promise<void> {
+  const authMethod = config.sshPassword ? 'password' : 'key';
+  
+  await db.insert(schema.sshKeys).values({
+    id: randomUUID(),
+    organizationId: organizationId,
+    name: 'Default SSH Key',
+    description: 'SSH key generated during installer',
+    host: config.sshHost,
+    user: config.sshUser,
+    port: config.sshPort,
+    privateKeyEncrypted: config.sshPrivateKey,
+    passwordEncrypted: config.sshPassword || null,
+    authMethod: authMethod,
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
+  console.log(`Created SSH key entry for organization ${organizationId} (user: ${userEmail})`);
+}
+
+// Load SSH credentials for email/password users after registration
+async function loadSSHCredentialsForUser(userId: string, organizationId: string, userEmail: string): Promise<void> {
+  try {
+
+    const accounts = await db
+      .select()
+      .from(schema.account)
+      .where(and(
+        eq(schema.account.userId, userId),
+        eq(schema.account.providerId, 'credential')
+      ))
+      .limit(1);
+
+    const account = accounts[0];
+
+    if (account && config.sshHost && config.sshPrivateKey) {
+      await createSSHKeyEntry(organizationId, userEmail);
+    } else if (account) {
+      console.log(`SSH credentials not available in environment for user ${userEmail}`);
+    }
+  } catch (error) {
+    console.error(`Failed to create SSH key entry for user ${userEmail}:`, error);
+  }
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -145,6 +192,9 @@ export const auth = betterAuth({
             });
 
             console.log(`Created default organization "${orgName}" (${orgId}) for user ${user.email}`);
+
+            // Check if user registered with email/password and load SSH credentials if available
+            await loadSSHCredentialsForUser(user.id, orgId, user.email);
           } catch (error) {
             // Log error but don't fail user creation
             console.error(`Failed to create default organization for user ${user.email}:`, error);
