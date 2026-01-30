@@ -1,1 +1,0 @@
-ALTER TABLE "user_provision_details" ADD COLUMN "domain" varchar(255);
