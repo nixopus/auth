@@ -1596,6 +1596,7 @@ export const userProvisionDetails = pgTable(
     sshKeyId: uuid("ssh_key_id")
       .references(() => sshKeys.id, { onDelete: "set null" }),
     subdomain: varchar("subdomain", { length: 255 }),
+    domain: varchar("domain", { length: 255 }),
     status: provisionStatusEnum("status").default("pending").notNull(),
     error: text("error"),
     createdAt: timestamp("created_at", { withTimezone: true })
