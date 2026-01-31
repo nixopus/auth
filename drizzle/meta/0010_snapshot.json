@@ -1,5 +1,5 @@
 {
-  "id": "regenerated-0010-03807399",
+  "id": "fixed-0010-03807399",
   "prevId": "f6a6b033-2840-4f4b-9e7e-952f03807399",
   "version": "7",
   "dialect": "postgresql",
@@ -1177,170 +1177,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.deviceCode": {
-      "name": "deviceCode",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "pg_catalog.gen_random_uuid()"
-        },
-        "deviceCode": {
-          "name": "deviceCode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "userCode": {
-          "name": "userCode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "userId": {
-          "name": "userId",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "clientId": {
-          "name": "clientId",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "scope": {
-          "name": "scope",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "expiresAt": {
-          "name": "expiresAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "lastPolledAt": {
-          "name": "lastPolledAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "pollingInterval": {
-          "name": "pollingInterval",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "createdAt": {
-          "name": "createdAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updatedAt": {
-          "name": "updatedAt",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "deviceCode_deviceCode_idx": {
-          "name": "deviceCode_deviceCode_idx",
-          "columns": [
-            {
-              "expression": "deviceCode",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "deviceCode_userCode_idx": {
-          "name": "deviceCode_userCode_idx",
-          "columns": [
-            {
-              "expression": "userCode",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "deviceCode_userId_idx": {
-          "name": "deviceCode_userId_idx",
-          "columns": [
-            {
-              "expression": "userId",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "deviceCode_userId_user_id_fk": {
-          "name": "deviceCode_userId_user_id_fk",
-          "tableFrom": "deviceCode",
-          "tableTo": "user",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "deviceCode_deviceCode_unique": {
-          "name": "deviceCode_deviceCode_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "deviceCode"
-          ]
-        },
-        "deviceCode_userCode_unique": {
-          "name": "deviceCode_userCode_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "userCode"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -4626,9 +4462,16 @@
           "notNull": true,
           "default": "now()"
         },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
+        "status": {
+          "name": "status",
+          "type": "provision_status",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -4685,11 +4528,11 @@
           "method": "btree",
           "with": {}
         },
-        "idx_user_provision_details_lxd_container_name": {
-          "name": "idx_user_provision_details_lxd_container_name",
+        "idx_user_provision_details_status": {
+          "name": "idx_user_provision_details_status",
           "columns": [
             {
-              "expression": "lxd_container_name",
+              "expression": "status",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -4700,32 +4543,23 @@
           "method": "btree",
           "with": {}
         },
-        "idx_user_provision_details_subdomain": {
-          "name": "idx_user_provision_details_subdomain",
+        "idx_user_provision_details_user_org_unique": {
+          "name": "idx_user_provision_details_user_org_unique",
           "columns": [
             {
-              "expression": "subdomain",
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organization_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_user_provision_details_deleted_at": {
-          "name": "idx_user_provision_details_deleted_at",
-          "columns": [
-            {
-              "expression": "deleted_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -4884,6 +4718,19 @@
         "not_validated",
         "valid",
         "invalid"
+      ]
+    },
+    "public.provision_status": {
+      "name": "provision_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "initializing",
+        "creating_container",
+        "configuring_ssh",
+        "setting_up_subdomain",
+        "completed",
+        "failed"
       ]
     }
   },
