@@ -1,5 +1,5 @@
 {
-  "id": "c94d7134-6d5f-4d8e-b5af-00a541cba417",
+  "id": "fixed-0010-03807399",
   "prevId": "f6a6b033-2840-4f4b-9e7e-952f03807399",
   "version": "7",
   "dialect": "postgresql",
@@ -4063,206 +4063,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user_provision_details": {
-      "name": "user_provision_details",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "uuid_generate_v4()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "lxd_container_name": {
-          "name": "lxd_container_name",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ssh_key_id": {
-          "name": "ssh_key_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "subdomain": {
-          "name": "subdomain",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "provision_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
-        },
-        "error": {
-          "name": "error",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "idx_user_provision_details_user_id": {
-          "name": "idx_user_provision_details_user_id",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_user_provision_details_organization_id": {
-          "name": "idx_user_provision_details_organization_id",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_user_provision_details_status": {
-          "name": "idx_user_provision_details_status",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_user_provision_details_ssh_key_id": {
-          "name": "idx_user_provision_details_ssh_key_id",
-          "columns": [
-            {
-              "expression": "ssh_key_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_user_provision_details_user_org_unique": {
-          "name": "idx_user_provision_details_user_org_unique",
-          "columns": [
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "user_provision_details_user_id_user_id_fk": {
-          "name": "user_provision_details_user_id_user_id_fk",
-          "tableFrom": "user_provision_details",
-          "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "user_provision_details_organization_id_organization_id_fk": {
-          "name": "user_provision_details_organization_id_organization_id_fk",
-          "tableFrom": "user_provision_details",
-          "tableTo": "organization",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "user_provision_details_ssh_key_id_ssh_keys_id_fk": {
-          "name": "user_provision_details_ssh_key_id_ssh_keys_id_fk",
-          "tableFrom": "user_provision_details",
-          "tableTo": "ssh_keys",
-          "columnsFrom": [
-            "ssh_key_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.user_settings": {
       "name": "user_settings",
       "schema": "",
@@ -4606,6 +4406,211 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.user_provision_details": {
+      "name": "user_provision_details",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "uuid_generate_v4()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "lxd_container_name": {
+          "name": "lxd_container_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ssh_key_id": {
+          "name": "ssh_key_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subdomain": {
+          "name": "subdomain",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "provision_status",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "domain": {
+          "name": "domain",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_user_provision_details_user_id": {
+          "name": "idx_user_provision_details_user_id",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_user_provision_details_organization_id": {
+          "name": "idx_user_provision_details_organization_id",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_user_provision_details_ssh_key_id": {
+          "name": "idx_user_provision_details_ssh_key_id",
+          "columns": [
+            {
+              "expression": "ssh_key_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_user_provision_details_status": {
+          "name": "idx_user_provision_details_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_user_provision_details_user_org_unique": {
+          "name": "idx_user_provision_details_user_org_unique",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "user_provision_details_user_id_user_id_fk": {
+          "name": "user_provision_details_user_id_user_id_fk",
+          "tableFrom": "user_provision_details",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "user_provision_details_organization_id_organization_id_fk": {
+          "name": "user_provision_details_organization_id_organization_id_fk",
+          "tableFrom": "user_provision_details",
+          "tableTo": "organization",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "user_provision_details_ssh_key_id_ssh_keys_id_fk": {
+          "name": "user_provision_details_ssh_key_id_ssh_keys_id_fk",
+          "tableFrom": "user_provision_details",
+          "tableTo": "ssh_keys",
+          "columnsFrom": [
+            "ssh_key_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -4691,19 +4696,6 @@
         "run"
       ]
     },
-    "public.provision_status": {
-      "name": "provision_status",
-      "schema": "public",
-      "values": [
-        "pending",
-        "initializing",
-        "creating_container",
-        "configuring_ssh",
-        "setting_up_subdomain",
-        "completed",
-        "failed"
-      ]
-    },
     "public.status": {
       "name": "status",
       "schema": "public",
@@ -4726,6 +4718,19 @@
         "not_validated",
         "valid",
         "invalid"
+      ]
+    },
+    "public.provision_status": {
+      "name": "provision_status",
+      "schema": "public",
+      "values": [
+        "pending",
+        "initializing",
+        "creating_container",
+        "configuring_ssh",
+        "setting_up_subdomain",
+        "completed",
+        "failed"
       ]
     }
   },
