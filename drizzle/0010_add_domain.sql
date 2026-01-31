@@ -1,4 +1,0 @@
--- Migration 0010: add_domain
--- This migration is a placeholder. Domain-related tables already exist from migration 0000.
--- The domain column addition to user_provision_details is in migration 0011.
---> statement-breakpoint
