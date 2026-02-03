@@ -18,7 +18,26 @@ import { eq, and } from 'drizzle-orm';
 
 // Email sending function using Resend
 async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' }) {
-  await emailService.sendVerificationOTP({ email, otp, type });
+  // Check if user exists to determine if this is a new registration or existing user login
+  let isNewUser = false;
+  
+  if (type === 'sign-in') {
+    try {
+      const existingUser = await db
+        .select()
+        .from(schema.user)
+        .where(eq(schema.user.email, email))
+        .limit(1);
+      
+      isNewUser = existingUser.length === 0;
+    } catch (error) {
+      console.error(`Failed to check if user exists for ${email}:`, error);
+      // Default to existing user assumption if check fails
+      isNewUser = false;
+    }
+  }
+  
+  await emailService.sendVerificationOTP({ email, otp, type, isNewUser });
 }
 
 // Initialize Dodo Payments client

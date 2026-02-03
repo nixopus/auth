@@ -6,6 +6,7 @@ export interface SendOTPEmailParams {
   email: string;
   otp: string;
   type: 'sign-in' | 'email-verification' | 'forget-password';
+  isNewUser?: boolean; // Indicates if this is a new user registration (true) or existing user login (false)
 }
 
 export interface SendInvitationEmailParams {
@@ -38,14 +39,15 @@ export class EmailService {
    * Send OTP verification email using template
    */
   async sendVerificationOTP(params: SendOTPEmailParams): Promise<void> {
-    const { email, otp, type } = params;
+    const { email, otp, type, isNewUser } = params;
 
     let subject: string;
     let templateId: string | undefined;
 
     switch (type) {
       case 'sign-in':
-        subject = 'Your sign-in code';
+        // Customize subject based on whether it's a new user or existing user
+        subject = isNewUser ? 'Welcome! Your sign-up code' : 'Your sign-in code';
         templateId = templateManager.getTemplateId(TEMPLATE_IDS.OTP_SIGN_IN);
         break;
       case 'email-verification':
@@ -74,7 +76,7 @@ export class EmailService {
         });
       } else {
         // Fallback to inline HTML if templates not available
-        const html = this.getOTPHTML(type, otp);
+        const html = this.getOTPHTML(type, otp, isNewUser);
         await resendService.sendEmail({
           from: this.defaultFrom,
           to: email,
@@ -82,7 +84,8 @@ export class EmailService {
           html,
         });
       }
-      console.log(`OTP email sent successfully to ${email} (type: ${type})`);
+      const userType = isNewUser ? 'new user' : 'existing user';
+      console.log(`OTP email sent successfully to ${email} (type: ${type}, ${userType})`);
     } catch (error) {
       console.error(`Failed to send OTP email to ${email}:`, error);
       throw error;
@@ -154,15 +157,20 @@ export class EmailService {
   /**
    * Fallback HTML for OTP emails (used when templates are not available)
    */
-  private getOTPHTML(type: 'sign-in' | 'email-verification' | 'forget-password', otp: string): string {
+  private getOTPHTML(type: 'sign-in' | 'email-verification' | 'forget-password', otp: string, isNewUser?: boolean): string {
     let title: string;
     let description: string;
     let footerText: string;
 
     switch (type) {
       case 'sign-in':
-        title = 'Your Sign-In Code';
-        description = 'Your verification code is:';
+        if (isNewUser) {
+          title = 'Welcome! Your Sign-Up Code';
+          description = 'Thank you for signing up! Your verification code is:';
+        } else {
+          title = 'Welcome Back! Your Sign-In Code';
+          description = 'Your verification code is:';
+        }
         footerText = 'If you didn\'t request this code, please ignore this email.';
         break;
       case 'email-verification':
