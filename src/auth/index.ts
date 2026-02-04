@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP, organization, deviceAuthorization, bearer } from 'better-auth/plugins';
+import { createAuthMiddleware } from 'better-auth/api';
 import {
   dodopayments,
   checkout,
@@ -16,12 +17,50 @@ import { randomUUID } from 'crypto';
 import { emailService } from '../services/email.js';
 import { eq, and } from 'drizzle-orm';
 
-// Email sending function using Resend
-async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' }) {
-  await emailService.sendVerificationOTP({ email, otp, type });
+async function checkIfUserExists(email: string): Promise<boolean> {
+  try {
+    const existingUser = await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, email))
+      .limit(1);
+    
+    return existingUser.length === 0;
+  } catch (error) {
+    console.error(`Failed to check if user exists for ${email}:`, error);
+    return false;
+  }
 }
 
-// Initialize Dodo Payments client
+function buildOTPVerificationResponse(context: any): { success: boolean; isNewUser: boolean; user?: any; session?: any } {
+  const isNewUser = !!context?.newSession;
+  
+  const responseData: any = {
+    success: true,
+    isNewUser,
+  };
+  
+  if (context?.newSession) {
+    responseData.user = context.newSession.user;
+    responseData.session = context.newSession.session;
+  } else if (context?.session) {
+    responseData.user = context.session.user;
+    responseData.session = context.session;
+  }
+  
+  return responseData;
+}
+
+async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' }) {
+  let isNewUser = false;
+  
+  if (type === 'sign-in') {
+    isNewUser = await checkIfUserExists(email);
+  }
+  
+  await emailService.sendVerificationOTP({ email, otp, type, isNewUser });
+}
+
 export const dodoPayments = new DodoPayments({
   bearerToken: config.dodoPaymentsApiKey,
   environment: config.dodoPaymentsEnvironment,
@@ -48,10 +87,8 @@ async function createSSHKeyEntry(organizationId: string, userEmail: string): Pro
   console.log(`Created SSH key entry for organization ${organizationId} (user: ${userEmail})`);
 }
 
-// Load SSH credentials for email/password users after registration
-async function loadSSHCredentialsForUser(userId: string, organizationId: string, userEmail: string): Promise<void> {
+async function checkIfUserHasCredentialAccount(userId: string): Promise<boolean> {
   try {
-
     const accounts = await db
       .select()
       .from(schema.account)
@@ -61,11 +98,20 @@ async function loadSSHCredentialsForUser(userId: string, organizationId: string,
       ))
       .limit(1);
 
-    const account = accounts[0];
+    return accounts.length > 0;
+  } catch (error) {
+    console.error(`Failed to check credential account for user ${userId}:`, error);
+    return false;
+  }
+}
 
-    if (account && config.sshHost && config.sshPrivateKey) {
+async function loadSSHCredentialsForUser(userId: string, organizationId: string, userEmail: string): Promise<void> {
+  try {
+    const hasCredentialAccount = await checkIfUserHasCredentialAccount(userId);
+
+    if (hasCredentialAccount && config.sshHost && config.sshPrivateKey) {
       await createSSHKeyEntry(organizationId, userEmail);
-    } else if (account) {
+    } else if (hasCredentialAccount) {
       console.log(`SSH credentials not available in environment for user ${userEmail}`);
     }
   } catch (error) {
@@ -99,7 +145,7 @@ export const auth = betterAuth({
       ? {
           crossSubDomainCookies: {
             enabled: true,
-            domain: config.cookieDomain, // Set from BETTER_AUTH_COOKIE_DOMAIN env var
+            domain: config.cookieDomain,
           },
         }
       : {
@@ -112,7 +158,7 @@ export const auth = betterAuth({
     emailOTP({
       sendVerificationOTP,
       otpLength: 6,
-      expiresIn: 1300, // 5 minutes
+      expiresIn: 1300,
       allowedAttempts: 3,
     }),
     organization({
@@ -134,9 +180,7 @@ export const auth = betterAuth({
       interval: '5s', // Polling interval (5 seconds)
       userCodeLength: 8, // User code length (8 characters)
       validateClient: async (clientId) => {
-        // Validate client IDs - allow 'nixopus-cli' or any client for now
-        // In production, you might want to check against a database of allowed clients
-        return clientId === 'nixopus-cli' || true; // Allow all for now, restrict later
+        return clientId === 'nixopus-cli' || true;
       },
     }),
     bearer(), // Enable Bearer token authentication for CLI and API access
@@ -157,7 +201,7 @@ export const auth = betterAuth({
               portal(),
               webhooks({
                 webhookKey: config.dodoPaymentsWebhookSecret,
-                onPayload: async (payload) => {
+                onPayload: async (payload: any) => {
                   console.log('Received Dodo Payments webhook:', payload.type);
                   // Handle webhook events here
                 },
@@ -172,16 +216,12 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          // Create a default organization for the new user
           try {
-            // Generate a slug from the user's name or email
             const userName = user.name || user.email.split('@')[0];
             const baseSlug = userName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            // Generate a UUID-based suffix for uniqueness (using last 8 chars of UUID)
             const uuidSuffix = randomUUID().replace(/-/g, '').substring(0, 8);
             const slug = `${baseSlug}-${uuidSuffix}`;
             
-            // Create organization directly in the database using UUID
             const orgId = randomUUID();
             const orgName = `${userName}'s Team`;
             
@@ -193,7 +233,6 @@ export const auth = betterAuth({
               metadata: JSON.stringify({ description: 'Default organization' }),
             });
 
-            // Add user as owner of the organization using UUID
             const memberId = randomUUID();
             await db.insert(schema.member).values({
               id: memberId,
@@ -205,10 +244,8 @@ export const auth = betterAuth({
 
             console.log(`Created default organization "${orgName}" (${orgId}) for user ${user.email}`);
 
-            // Check if user registered with email/password and load SSH credentials if available
             await loadSSHCredentialsForUser(user.id, orgId, user.email);
           } catch (error) {
-            // Log error but don't fail user creation
             console.error(`Failed to create default organization for user ${user.email}:`, error);
           }
         },
@@ -216,7 +253,45 @@ export const auth = betterAuth({
     },
   },
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    expiresIn: 60 * 60 * 24 * 7, // 7days
     updateAge: 60 * 60 * 24, // 1 day
+  },
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      const isEmailOTPSend = ctx.path === '/email-otp/send-verification-otp';
+      const isEmailOTPVerify = ctx.path === '/email-otp/check-verification-otp';
+      
+      if (!isEmailOTPSend && !isEmailOTPVerify) {
+        return;
+      }
+      
+      const body = ctx.body as { email?: string; type?: string };
+      
+      if (body.type !== 'sign-in' || !body.email) {
+        return;
+      }
+      
+      if (isEmailOTPSend) {
+        const isNewUser = await checkIfUserExists(body.email);
+        
+        return ctx.json({
+          success: true,
+          isNewUser,
+        });
+      }
+      
+      if (isEmailOTPVerify) {
+        try {
+          const responseData = buildOTPVerificationResponse(ctx.context);
+          return ctx.json(responseData);
+        } catch (error) {
+          console.error(`Failed to check if user exists in email OTP verification hook for ${body.email}:`, error);
+          return ctx.json({
+            success: true,
+            isNewUser: false,
+          });
+        }
+      }
+    }),
   },
 });
