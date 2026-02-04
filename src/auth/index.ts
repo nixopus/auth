@@ -242,11 +242,6 @@ export const auth = betterAuth({
               createdAt: new Date(),
             });
 
-            // Set the newly created organization as active in the user's session
-            await db.update(schema.session)
-              .set({ activeOrganizationId: orgId })
-              .where(eq(schema.session.userId, user.id));
-
             console.log(`Created default organization "${orgName}" (${orgId}) for user ${user.email}`);
 
             await loadSSHCredentialsForUser(user.id, orgId, user.email);
