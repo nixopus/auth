@@ -97,6 +97,34 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const deviceCode = pgTable(
+  "deviceCode",
+  {
+    id: uuid("id")
+      .default(sql`pg_catalog.gen_random_uuid()`)
+      .primaryKey(),
+    deviceCode: text("deviceCode").notNull().unique(),
+    userCode: text("userCode").notNull().unique(),
+    userId: uuid("userId").references(() => user.id, { onDelete: "cascade" }),
+    clientId: text("clientId"),
+    scope: text("scope"),
+    status: text("status").default("pending").notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    lastPolledAt: timestamp("lastPolledAt"),
+    pollingInterval: integer("pollingInterval"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("deviceCode_deviceCode_idx").on(table.deviceCode),
+    index("deviceCode_userCode_idx").on(table.userCode),
+    index("deviceCode_userId_idx").on(table.userId),
+  ],
+);
+
 export const organization = pgTable(
   "organization",
   {
