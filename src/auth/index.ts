@@ -192,9 +192,14 @@ export const auth = betterAuth({
             createCustomerOnSignUp: true,
             use: [
               checkout({
-                products: [
-                  // TODO: Add products here
-                ],
+                products: config.dodoPaymentsProductId
+                  ? [
+                      {
+                        productId: config.dodoPaymentsProductId,
+                        slug: config.dodoPaymentsProductSlug,
+                      },
+                    ]
+                  : [],
                 successUrl: '/dashboard/success',
                 authenticatedUsersOnly: true,
               }),
@@ -216,6 +221,16 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
+          // Ensure user has a non-empty name (required for DodoPayments checkout)
+          if (!user.name || user.name.trim().length === 0) {
+            const fallbackName = user.email.split('@')[0];
+            await db.update(schema.user)
+              .set({ name: fallbackName })
+              .where(eq(schema.user.id, user.id));
+            user.name = fallbackName;
+          }
+          
+          // Create a default organization for the new user
           try {
             const userName = user.name || user.email.split('@')[0];
             const baseSlug = userName.toLowerCase().replace(/[^a-z0-9]+/g, '-');

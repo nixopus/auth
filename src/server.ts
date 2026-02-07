@@ -9,6 +9,10 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { config } from './config.js';
 import { authHandler } from './auth/handler.js';
+import { auth } from './auth/index.js';
+import { db } from './db/index.js';
+import * as schema from './db/schema.js';
+import { eq } from 'drizzle-orm';
 
 const app = new Hono();
 
@@ -35,6 +39,42 @@ app.get('/health', (c) => {
 
 // Better Auth routes
 app.all('/api/auth/*', async (c) => {
+  const url = new URL(c.req.url);
+  const isCheckoutRequest = url.pathname.includes('/dodopayments/checkout');
+  
+  if (isCheckoutRequest) {
+    // Ensure authenticated user has a name before checkout
+    // This fixes the issue where Better Auth plugin uses user's name from DB
+    try {
+      const clonedRequest = c.req.raw.clone();
+      const requestBody = await clonedRequest.text().catch(() => null);
+      let parsedBody: any = null;
+      try {
+        parsedBody = requestBody ? (requestBody.startsWith('{') || requestBody.startsWith('[') ? JSON.parse(requestBody) : requestBody) : null;
+      } catch (e) {
+        // Ignore parse errors
+      }
+      
+      const customerInfo = parsedBody?.customer;
+      const session = await auth.api.getSession({ headers: c.req.raw.headers });
+      if (session?.user) {
+        const user = session.user;
+        // Check if user's name is empty or missing
+        if (!user.name || user.name.trim().length === 0) {
+          // Use provided customer name or fallback to email prefix
+          const newName = customerInfo?.name?.trim() || user.email.split('@')[0];
+          if (newName) {
+            await db.update(schema.user)
+              .set({ name: newName })
+              .where(eq(schema.user.id, user.id));
+          }
+        }
+      }
+    } catch (error) {
+      // Silently fail - don't block checkout if we can't update user name
+    }
+  }
+  
   return authHandler(c.req.raw);
 });
 

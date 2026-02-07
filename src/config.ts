@@ -34,6 +34,8 @@ export const config = {
   dodoPaymentsApiKey: process.env.DODO_PAYMENTS_API_KEY || '',
   dodoPaymentsWebhookSecret: process.env.DODO_PAYMENTS_WEBHOOK_SECRET || '',
   dodoPaymentsEnvironment: (process.env.DODO_PAYMENTS_ENVIRONMENT || 'test_mode') as 'test_mode' | 'live_mode',
+  dodoPaymentsProductId: process.env.DODO_PAYMENTS_PRODUCT_ID || '',
+  dodoPaymentsProductSlug: process.env.DODO_PAYMENTS_PRODUCT_SLUG || 'pro-plan',
   // SSH configuration (for installer-generated SSH keys)
   sshHost: process.env.SSH_HOST || '',
   sshPort: parseInt(process.env.SSH_PORT || '22', 10),
