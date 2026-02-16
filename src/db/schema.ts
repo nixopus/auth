@@ -626,6 +626,21 @@ export const webhookConfigs = pgTable(
   ],
 );
 
+// Application context: cached Merkle root and path→checksum for live dev manifest
+export const applicationContext = pgTable(
+  "application_context",
+  {
+    applicationId: uuid("application_id")
+      .primaryKey()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    rootHash: text("root_hash"),
+    paths: jsonb("paths").default(sql`'{}'::jsonb`).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
 // Live deploy sessions
 export const liveDeploySessions = pgTable("live_deploy_sessions", {
   id: uuid("id").primaryKey(),
@@ -929,6 +944,10 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
   domains: many(applicationDomains),
   healthChecks: many(healthChecks),
   liveDeploySessions: many(liveDeploySessions),
+  applicationContext: one(applicationContext, {
+    fields: [applications.id],
+    references: [applicationContext.applicationId],
+  }),
 }));
 
 export const applicationStatusRelations = relations(
@@ -1061,6 +1080,16 @@ export const liveDeploySessionsRelations = relations(
     organization: one(organization, {
       fields: [liveDeploySessions.organizationId],
       references: [organization.id],
+    }),
+  }),
+);
+
+export const applicationContextRelations = relations(
+  applicationContext,
+  ({ one }) => ({
+    application: one(applications, {
+      fields: [applicationContext.applicationId],
+      references: [applications.id],
     }),
   }),
 );

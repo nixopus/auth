@@ -92,6 +92,20 @@
       "when": 1770454064885,
       "tag": "0012_lively_ultimatum",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1771336800000,
+      "tag": "0013_live_dev_notify",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1771265047404,
+      "tag": "0014_stale_juggernaut",
+      "breakpoints": true
     }
   ]
 }

@@ -15,7 +15,7 @@ import { config } from '../config.js';
 import * as schema from '../db/schema.js';
 import { randomUUID } from 'crypto';
 import { emailService } from '../services/email.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, asc } from 'drizzle-orm';
 
 async function checkIfUserExists(email: string): Promise<boolean> {
   try {
@@ -85,6 +85,20 @@ async function createSSHKeyEntry(organizationId: string, userEmail: string): Pro
   });
 
   console.log(`Created SSH key entry for organization ${organizationId} (user: ${userEmail})`);
+}
+
+async function getInitialOrganization(userId: string): Promise<{ id: string } | null> {
+  const rows = await db
+    .select({ id: schema.organization.id })
+    .from(schema.member)
+    .innerJoin(
+      schema.organization,
+      eq(schema.member.organizationId, schema.organization.id),
+    )
+    .where(eq(schema.member.userId, userId))
+    .orderBy(asc(schema.member.createdAt))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
 async function checkIfUserHasCredentialAccount(userId: string): Promise<boolean> {
@@ -218,6 +232,19 @@ export const auth = betterAuth({
       : []),
   ],
   databaseHooks: {
+    session: {
+      create: {
+        before: async (session) => {
+          const organization = await getInitialOrganization(session.userId);
+          return {
+            data: {
+              ...session,
+              activeOrganizationId: organization?.id ?? null,
+            },
+          };
+        },
+      },
+    },
     user: {
       create: {
         after: async (user) => {
