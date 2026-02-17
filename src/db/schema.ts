@@ -15,14 +15,6 @@ import {
   bigint,
 } from "drizzle-orm/pg-core";
 
-/** User provisioning state: one-time LXD provision per user */
-export const provisionStatusUserEnum = pgEnum("provision_status_user", [
-  "NOT_STARTED",
-  "PROVISIONING",
-  "ACTIVE",
-  "FAILED",
-]);
-
 export const user = pgTable("user", {
   id: uuid("id")
     .default(sql`pg_catalog.gen_random_uuid()`)
@@ -32,7 +24,6 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
   isOnboarded: boolean("is_onboarded").default(false).notNull(),
-  provisionStatus: provisionStatusUserEnum("provision_status").default("NOT_STARTED"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()

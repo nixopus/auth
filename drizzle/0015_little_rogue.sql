@@ -1,2 +1,0 @@
-CREATE TYPE "public"."provision_status_user" AS ENUM('NOT_STARTED', 'PROVISIONING', 'ACTIVE', 'FAILED');--> statement-breakpoint
-ALTER TABLE "user" ADD COLUMN "provision_status" "provision_status_user" DEFAULT 'NOT_STARTED';
