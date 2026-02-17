@@ -1,0 +1,1 @@
+ALTER TABLE "application_context" ADD COLUMN "simhash" text;

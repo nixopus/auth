@@ -626,7 +626,7 @@ export const webhookConfigs = pgTable(
   ],
 );
 
-// Application context: cached Merkle root and path→checksum for live dev manifest
+// Application context: cached Merkle root, simhash, and path→checksum t
 export const applicationContext = pgTable(
   "application_context",
   {
@@ -634,11 +634,38 @@ export const applicationContext = pgTable(
       .primaryKey()
       .references(() => applications.id, { onDelete: "cascade" }),
     rootHash: text("root_hash"),
+    simhash: text("simhash"),
     paths: jsonb("paths").default(sql`'{}'::jsonb`).notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
+);
+
+// Application file chunks: semantic chunks per file for RAG/context
+export const applicationFileChunks = pgTable(
+  "application_file_chunks",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    path: text("path").notNull(),
+    startLine: integer("start_line").notNull(),
+    endLine: integer("end_line").notNull(),
+    content: text("content").notNull(),
+    chunkHash: varchar("chunk_hash", { length: 64 }).notNull(),
+    language: varchar("language", { length: 50 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_application_file_chunks_app_path").on(table.applicationId, table.path),
+    index("idx_application_file_chunks_app_id").on(table.applicationId),
+  ],
 );
 
 // Live deploy sessions
@@ -948,6 +975,7 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
     fields: [applications.id],
     references: [applicationContext.applicationId],
   }),
+  applicationFileChunks: many(applicationFileChunks),
 }));
 
 export const applicationStatusRelations = relations(
@@ -1089,6 +1117,16 @@ export const applicationContextRelations = relations(
   ({ one }) => ({
     application: one(applications, {
       fields: [applicationContext.applicationId],
+      references: [applications.id],
+    }),
+  }),
+);
+
+export const applicationFileChunksRelations = relations(
+  applicationFileChunks,
+  ({ one }) => ({
+    application: one(applications, {
+      fields: [applicationFileChunks.applicationId],
       references: [applications.id],
     }),
   }),
