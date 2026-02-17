@@ -120,6 +120,13 @@
       "when": 1771266237697,
       "tag": "0016_equal_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1771334036676,
+      "tag": "0017_naive_rage",
+      "breakpoints": true
     }
   ]
 }
