@@ -23,6 +23,18 @@ export const provisionStatusUserEnum = pgEnum("provision_status_user", [
   "FAILED",
 ]);
 
+/** Granular provisioning step for progress tracking */
+export const provisionStepEnum = pgEnum("provision_step", [
+  "INITIALIZING",
+  "CREATING_CONTAINER",
+  "SETUP_NETWORKING",
+  "INSTALLING_DEPENDENCIES",
+  "CONFIGURING_SSH",
+  "SETUP_SSH_FORWARDING",
+  "VERIFYING_SSH",
+  "COMPLETED",
+]);
+
 export const user = pgTable("user", {
   id: uuid("id")
     .default(sql`pg_catalog.gen_random_uuid()`)
@@ -1225,16 +1237,6 @@ export const executionStatusEnum = pgEnum("execution_status", [
   "failed",
 ]);
 
-export const provisionStatusEnum = pgEnum("provision_status", [
-  "pending",
-  "initializing",
-  "creating_container",
-  "configuring_ssh",
-  "setting_up_subdomain",
-  "completed",
-  "failed",
-]);
-
 export const extensionTypeEnum = pgEnum("extension_type", ["install", "run"]);
 
 // Extensions table
@@ -1548,7 +1550,7 @@ export const userProvisionDetails = pgTable(
       .references(() => sshKeys.id, { onDelete: "set null" }),
     subdomain: varchar("subdomain", { length: 255 }),
     domain: varchar("domain", { length: 255 }),
-    status: provisionStatusEnum("status").default("pending").notNull(),
+    step: provisionStepEnum("step"),
     error: text("error"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -1561,7 +1563,6 @@ export const userProvisionDetails = pgTable(
   (table) => [
     index("idx_user_provision_details_user_id").on(table.userId),
     index("idx_user_provision_details_organization_id").on(table.organizationId),
-    index("idx_user_provision_details_status").on(table.status),
     index("idx_user_provision_details_ssh_key_id").on(table.sshKeyId),
     uniqueIndex("idx_user_provision_details_user_org_unique").on(
       table.userId,
