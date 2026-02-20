@@ -134,6 +134,13 @@
       "when": 1771570200000,
       "tag": "0018_application_changes_log",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1771577221403,
+      "tag": "0019_lucky_sabretooth",
+      "breakpoints": true
     }
   ]
 }
