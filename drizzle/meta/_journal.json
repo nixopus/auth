@@ -127,6 +127,13 @@
       "when": 1771334036676,
       "tag": "0017_naive_rage",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1771570200000,
+      "tag": "0018_application_changes_log",
+      "breakpoints": true
     }
   ]
 }
