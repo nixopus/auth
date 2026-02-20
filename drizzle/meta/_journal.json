@@ -148,6 +148,13 @@
       "when": 1771590367257,
       "tag": "0020_wandering_cyclops",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1771616135731,
+      "tag": "0021_dazzling_gamora",
+      "breakpoints": true
     }
   ]
 }

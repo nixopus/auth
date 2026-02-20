@@ -1,6 +1,6 @@
 {
-  "id": "c79b4b89-8ede-4ed3-96ff-45b50fbbd4fa",
-  "prevId": "6553331c-b10c-487e-b963-43c63bfe459c",
+  "id": "e5d4f834-240e-4c66-b44b-6e0cc05812d2",
+  "prevId": "c4d38d19-7e5e-48fb-b418-212a85f03279",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -410,6 +410,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
+        },
+        "image_s3_key": {
+          "name": "image_s3_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "''"
+        },
+        "image_size": {
+          "name": "image_size",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -2198,7 +2212,7 @@
         },
         "icon": {
           "name": "icon",
-          "type": "varchar(10)",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -2459,20 +2473,7 @@
         }
       },
       "policies": {},
-      "checkConstraints": {
-        "valid_extension_id": {
-          "name": "valid_extension_id",
-          "value": "extension_id ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$'"
-        },
-        "valid_version": {
-          "name": "valid_version",
-          "value": "version IS NULL OR version ~ $pattern$^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9\\-]+)?$$pattern$"
-        },
-        "description_length": {
-          "name": "description_length",
-          "value": "LENGTH(description) BETWEEN 10 AND 2000"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.feature_flags": {
@@ -4468,13 +4469,12 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "provision_status",
+        "step": {
+          "name": "step",
+          "type": "provision_step",
           "typeSchema": "public",
           "primaryKey": false,
-          "notNull": true,
-          "default": "'pending'"
+          "notNull": false
         },
         "error": {
           "name": "error",
@@ -4518,21 +4518,6 @@
           "columns": [
             {
               "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "idx_user_provision_details_status": {
-          "name": "idx_user_provision_details_status",
-          "columns": [
-            {
-              "expression": "status",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -5055,19 +5040,6 @@
         "run"
       ]
     },
-    "public.provision_status": {
-      "name": "provision_status",
-      "schema": "public",
-      "values": [
-        "pending",
-        "initializing",
-        "creating_container",
-        "configuring_ssh",
-        "setting_up_subdomain",
-        "completed",
-        "failed"
-      ]
-    },
     "public.provision_status_user": {
       "name": "provision_status_user",
       "schema": "public",
@@ -5076,6 +5048,20 @@
         "PROVISIONING",
         "ACTIVE",
         "FAILED"
+      ]
+    },
+    "public.provision_step": {
+      "name": "provision_step",
+      "schema": "public",
+      "values": [
+        "INITIALIZING",
+        "CREATING_CONTAINER",
+        "SETUP_NETWORKING",
+        "INSTALLING_DEPENDENCIES",
+        "CONFIGURING_SSH",
+        "SETUP_SSH_FORWARDING",
+        "VERIFYING_SSH",
+        "COMPLETED"
       ]
     },
     "public.status": {
