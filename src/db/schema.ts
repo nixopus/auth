@@ -376,6 +376,8 @@ export const applicationDeployment = pgTable(
     containerName: text("container_name"),
     containerImage: text("container_image"),
     containerStatus: text("container_status"),
+    imageS3Key: text("image_s3_key").default(""),
+    imageSize: bigint("image_size", { mode: "number" }).default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
