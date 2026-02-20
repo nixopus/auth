@@ -1,0 +1,1 @@
+ALTER TABLE "extensions" ALTER COLUMN "icon" SET DATA TYPE text;

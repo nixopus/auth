@@ -388,6 +388,8 @@ export const applicationDeployment = pgTable(
     containerName: text("container_name"),
     containerImage: text("container_image"),
     containerStatus: text("container_status"),
+    imageS3Key: text("image_s3_key").default(""),
+    imageSize: bigint("image_size", { mode: "number" }).default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1250,7 +1252,7 @@ export const extensions = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     description: text("description").notNull(),
     author: varchar("author", { length: 50 }).notNull(),
-    icon: varchar("icon", { length: 10 }).notNull(),
+    icon: text("icon").notNull(),
     category: extensionCategoryEnum("category").notNull(),
     extensionType: extensionTypeEnum("extension_type")
       .default("run")
@@ -1288,15 +1290,6 @@ export const extensions = pgTable(
     index("idx_extensions_extension_type").on(table.extensionType),
     index("idx_extensions_parent_extension_id").on(table.parentExtensionId),
     index("idx_extensions_featured").on(table.featured),
-    check("valid_extension_id", sql`extension_id ~ '^[a-z0-9][a-z0-9-]*[a-z0-9]$'`),
-    check(
-      "valid_version",
-      sql`version IS NULL OR version ~ $pattern$^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9\\-]+)?$$pattern$`,
-    ),
-    check(
-      "description_length",
-      sql`LENGTH(description) BETWEEN 10 AND 2000`,
-    ),
   ],
 );
 
