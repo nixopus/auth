@@ -11,6 +11,7 @@ import {
 } from '@dodopayments/better-auth';
 import DodoPayments from 'dodopayments';
 import { db } from '../db/index.js';
+import { redis } from '../db/redis.js';
 import { config } from '../config.js';
 import * as schema from '../db/schema.js';
 import { randomUUID } from 'crypto';
@@ -133,11 +134,31 @@ async function loadSSHCredentialsForUser(userId: string, organizationId: string,
   }
 }
 
+function buildSecondaryStorage(client: NonNullable<typeof redis>) {
+  return {
+    get: async (key: string) => {
+      const val = await client.get(key);
+      return val ?? null;
+    },
+    set: async (key: string, value: string, ttl?: number) => {
+      if (ttl) {
+        await client.set(key, value, 'EX', ttl);
+      } else {
+        await client.set(key, value);
+      }
+    },
+    delete: async (key: string) => {
+      await client.del(key);
+    },
+  };
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema,
   }),
+  ...(redis ? { secondaryStorage: buildSecondaryStorage(redis) } : {}),
   baseURL: config.betterAuthUrl,
   basePath: '/api/auth',
   secret: config.betterAuthSecret,
@@ -295,8 +316,16 @@ export const auth = betterAuth({
     },
   },
   session: {
-    expiresIn: 60 * 60 * 24 * 7, // 7days
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
+    ...(redis
+      ? {
+          cookieCache: {
+            enabled: true,
+            maxAge: 5 * 60, // 5 min — revalidate from Redis after this
+          },
+        }
+      : {}),
   },
   hooks: {
     after: createAuthMiddleware(async (ctx) => {

@@ -13,6 +13,9 @@ export const config = {
   // Required for production, should be set via DATABASE_URL environment variable
   databaseUrl: process.env.DATABASE_URL || '',
 
+  // Redis configuration (optional, for session caching via secondaryStorage)
+  redisUrl: process.env.REDIS_URL || '',
+
   // Better Auth configuration
   betterAuthUrl: process.env.BETTER_AUTH_BASE_URL || process.env.BETTER_AUTH_URL || process.env.API_URL || `http://localhost:${parseInt(process.env.PORT || '8080', 10)}`,
   betterAuthSecret: process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET || 'better-auth-secret-change-in-production',
