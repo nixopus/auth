@@ -241,12 +241,6 @@ export const apiKeys = pgTable(
 );
 
 // Enums
-export const environmentEnum = pgEnum("environment", [
-  "development",
-  "staging",
-  "production",
-]);
-
 export const buildPackEnum = pgEnum("build_pack", [
   "dockerfile",
   "docker-compose",
@@ -319,7 +313,7 @@ export const applications = pgTable(
     id: uuid("id").primaryKey(),
     name: text("name").notNull(),
     port: integer("port").notNull(),
-    environment: environmentEnum("environment").notNull(),
+    environment: text("environment").notNull(),
     proxyServer: varchar("proxy_server", { length: 50 })
       .default("caddy")
       .notNull(),
