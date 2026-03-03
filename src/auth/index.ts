@@ -52,13 +52,7 @@ function buildOTPVerificationResponse(context: any): { success: boolean; isNewUs
 }
 
 async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' }) {
-  let isNewUser = false;
-  
-  if (type === 'sign-in') {
-    isNewUser = await checkIfUserExists(email);
-  }
-  
-  await emailService.sendVerificationOTP({ email, otp, type, isNewUser });
+  await emailService.sendVerificationOTP({ email, otp, type });
 }
 
 export const dodoPayments = new DodoPayments({

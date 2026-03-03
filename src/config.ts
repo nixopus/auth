@@ -28,7 +28,7 @@ export const config = {
 
   // Resend configuration
   resendApiKey: process.env.RESEND_API_KEY || '',
-  resendFromEmail: process.env.RESEND_FROM_EMAIL || 'updates@updates.nixopus.com',
+  resendFromEmail: process.env.RESEND_FROM_EMAIL || 'Nixopus <updates@updates.nixopus.com>',
 
   // Dodo Payments configuration
   dodoPaymentsApiKey: process.env.DODO_PAYMENTS_API_KEY || '',
