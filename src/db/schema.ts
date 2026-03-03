@@ -449,6 +449,33 @@ export const applicationLogs = pgTable(
   ],
 );
 
+export const composeServices = pgTable(
+  "compose_services",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    serviceName: text("service_name").notNull(),
+    port: integer("port").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_compose_services_application_id").on(table.applicationId),
+    uniqueIndex("idx_compose_services_app_service_unique").on(
+      table.applicationId,
+      table.serviceName,
+    ),
+  ],
+);
+
 export const applicationDomains = pgTable(
   "application_domains",
   {
@@ -459,6 +486,9 @@ export const applicationDomains = pgTable(
       .notNull()
       .references(() => applications.id, { onDelete: "cascade" }),
     domain: text("domain").notNull(),
+    composeServiceId: uuid("compose_service_id")
+      .references(() => composeServices.id, { onDelete: "set null" }),
+    port: integer("port"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -470,6 +500,7 @@ export const applicationDomains = pgTable(
       table.applicationId,
       table.domain,
     ),
+    index("idx_application_domains_compose_service_id").on(table.composeServiceId),
   ],
 );
 
@@ -986,6 +1017,7 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
   logs: many(applicationLogs),
   deployments: many(applicationDeployment),
   domains: many(applicationDomains),
+  composeServices: many(composeServices),
   healthChecks: many(healthChecks),
   liveDeploySessions: many(liveDeploySessions),
   applicationContext: one(applicationContext, {
@@ -1044,12 +1076,27 @@ export const applicationLogsRelations = relations(
   }),
 );
 
+export const composeServicesRelations = relations(
+  composeServices,
+  ({ one, many }) => ({
+    application: one(applications, {
+      fields: [composeServices.applicationId],
+      references: [applications.id],
+    }),
+    domains: many(applicationDomains),
+  }),
+);
+
 export const applicationDomainsRelations = relations(
   applicationDomains,
   ({ one }) => ({
     application: one(applications, {
       fields: [applicationDomains.applicationId],
       references: [applications.id],
+    }),
+    composeService: one(composeServices, {
+      fields: [applicationDomains.composeServiceId],
+      references: [composeServices.id],
     }),
   }),
 );
@@ -1484,6 +1531,7 @@ export const sshKeys = pgTable(
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
     host: varchar("host", { length: 255 }),
+    proxyHost: varchar("proxy_host", { length: 255 }),
     user: varchar("user", { length: 255 }),
     port: integer("port").default(22),
     publicKey: text("public_key"),

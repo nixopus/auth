@@ -162,6 +162,20 @@
       "when": 1772286781775,
       "tag": "0022_custom_environment_names",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1772386365445,
+      "tag": "0023_compose_service_domains",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1772457648191,
+      "tag": "0024_harsh_molten_man",
+      "breakpoints": true
     }
   ]
 }
