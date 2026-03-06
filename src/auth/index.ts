@@ -15,7 +15,7 @@ import { config } from '../config.js';
 import * as schema from '../db/schema.js';
 import { randomUUID } from 'crypto';
 import { emailService } from '../services/email.js';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, sql } from 'drizzle-orm';
 
 async function checkIfUserExists(email: string): Promise<boolean> {
   try {
@@ -59,6 +59,95 @@ export const dodoPayments = new DodoPayments({
   bearerToken: config.dodoPaymentsApiKey,
   environment: config.dodoPaymentsEnvironment,
 });
+
+const PLAN_CREDIT_ALLOCATIONS: Record<string, number> = {
+  free: 500,
+  pro: 10000,
+  team: 50000,
+};
+
+async function getOrgIdFromCustomerEmail(email: string): Promise<string | null> {
+  const rows = await db
+    .select({ organizationId: schema.member.organizationId })
+    .from(schema.user)
+    .innerJoin(schema.member, eq(schema.member.userId, schema.user.id))
+    .where(and(eq(schema.user.email, email), eq(schema.member.role, 'owner')))
+    .orderBy(asc(schema.member.createdAt))
+    .limit(1);
+  return rows[0]?.organizationId ?? null;
+}
+
+function getPlanTier(productId: string, metadata: Record<string, any> | null): string {
+  if (metadata?.plan && typeof metadata.plan === 'string') {
+    return metadata.plan;
+  }
+  if (config.dodoPaymentsProductId && productId === config.dodoPaymentsProductId) {
+    return config.dodoPaymentsProductSlug.replace(/-plan$/, '');
+  }
+  return 'free';
+}
+
+async function grantPlanCredits(orgId: string, credits: number, referenceId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.creditAccounts).values({
+      organizationId: orgId,
+      planCredits: 0,
+      purchasedCredits: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).onConflictDoNothing({ target: schema.creditAccounts.organizationId });
+
+    const [updated] = await tx.update(schema.creditAccounts)
+      .set({
+        planCredits: credits,
+        planCreditsResetAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.creditAccounts.organizationId, orgId))
+      .returning();
+
+    await tx.insert(schema.creditTransactions).values({
+      organizationId: orgId,
+      type: 'plan_grant',
+      amount: credits,
+      balanceAfter: updated.planCredits + updated.purchasedCredits,
+      source: 'plan',
+      referenceId,
+      createdAt: new Date(),
+    });
+  });
+}
+
+async function addPurchasedCredits(orgId: string, credits: number, referenceId: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.creditAccounts).values({
+      organizationId: orgId,
+      planCredits: 0,
+      purchasedCredits: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).onConflictDoNothing({ target: schema.creditAccounts.organizationId });
+
+    const [updated] = await tx.update(schema.creditAccounts)
+      .set({
+        purchasedCredits: sql`${schema.creditAccounts.purchasedCredits} + ${credits}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(schema.creditAccounts.organizationId, orgId))
+      .returning();
+
+    await tx.insert(schema.creditTransactions).values({
+      organizationId: orgId,
+      type: 'top_up',
+      amount: credits,
+      balanceAfter: updated.planCredits + updated.purchasedCredits,
+      source: 'purchased',
+      referenceId,
+      createdAt: new Date(),
+    });
+  });
+}
+
 async function createSSHKeyEntry(organizationId: string, userEmail: string): Promise<void> {
   const authMethod = config.sshPassword ? 'password' : 'key';
   
@@ -216,7 +305,48 @@ export const auth = betterAuth({
                 webhookKey: config.dodoPaymentsWebhookSecret,
                 onPayload: async (payload: any) => {
                   console.log('Received Dodo Payments webhook:', payload.type);
-                  // Handle webhook events here
+
+                  if (
+                    payload.type === 'subscription.active' ||
+                    payload.type === 'subscription.renewed' ||
+                    payload.type === 'subscription.plan_changed'
+                  ) {
+                    try {
+                      const orgId = await getOrgIdFromCustomerEmail(payload.data.customer.email);
+                      if (!orgId) {
+                        console.error(`No organization found for customer: ${payload.data.customer.email}`);
+                        return;
+                      }
+                      const tier = getPlanTier(payload.data.product_id, payload.data.metadata);
+                      const credits = PLAN_CREDIT_ALLOCATIONS[tier] ?? PLAN_CREDIT_ALLOCATIONS.free;
+                      await grantPlanCredits(orgId, credits, payload.data.subscription_id);
+                      console.log(`Granted ${credits} plan credits (${tier}) to org ${orgId}`);
+                    } catch (error) {
+                      console.error('Failed to grant plan credits:', error);
+                    }
+                  }
+
+                  if (payload.type === 'payment.succeeded') {
+                    try {
+                      if (payload.data.subscription_id) return;
+                      const orgId = await getOrgIdFromCustomerEmail(payload.data.customer.email);
+                      if (!orgId) {
+                        console.error(`No organization found for customer: ${payload.data.customer.email}`);
+                        return;
+                      }
+                      const credits = payload.data.metadata?.credits
+                        ? Number(payload.data.metadata.credits)
+                        : payload.data.total_amount;
+                      await addPurchasedCredits(orgId, credits, payload.data.payment_id);
+                      console.log(`Added ${credits} purchased credits to org ${orgId}`);
+                    } catch (error) {
+                      console.error('Failed to add purchased credits:', error);
+                    }
+                  }
+
+                  if (payload.type === 'subscription.cancelled') {
+                    console.log(`Subscription cancelled for customer: ${payload.data.customer.email}`);
+                  }
                 },
               }),
               usage(),

@@ -2,14 +2,13 @@
 import './init-secrets.js';
 import { waitForSecrets } from './init-secrets.js';
 
-// Wait for secrets to be loaded before proceeding with initialization
 await waitForSecrets();
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { config } from './config.js';
 import { authHandler } from './auth/handler.js';
-import { auth } from './auth/index.js';
+import { auth, dodoPayments } from './auth/index.js';
 import { db } from './db/index.js';
 import * as schema from './db/schema.js';
 import { eq } from 'drizzle-orm';
@@ -37,7 +36,38 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok', service: 'auth' });
 });
 
-// Better Auth routes
+app.post('/api/credits/checkout', async (c) => {
+  try {
+    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    if (!session?.user) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const body = await c.req.json();
+    const packId = body.pack_id as string;
+
+    const pack = config.dodoCreditPacks[packId as keyof typeof config.dodoCreditPacks];
+    if (!pack || !pack.productId) {
+      return c.json({ error: 'Invalid credit pack' }, 400);
+    }
+
+    const checkoutSession = await dodoPayments.checkoutSessions.create({
+      product_cart: [{ product_id: pack.productId, quantity: 1 }],
+      customer: {
+        email: session.user.email,
+        name: session.user.name || session.user.email.split('@')[0],
+      },
+      metadata: { credits: String(pack.credits) },
+      return_url: `${config.corsAllowedOrigins[0]}/billing?checkout=success`,
+    });
+
+    return c.json({ checkout_url: checkoutSession.checkout_url });
+  } catch (error: any) {
+    console.error('Credit checkout error:', error);
+    return c.json({ error: error.message || 'Failed to create checkout' }, 500);
+  }
+});
+
 app.all('/api/auth/*', async (c) => {
   const url = new URL(c.req.url);
   const isCheckoutRequest = url.pathname.includes('/dodopayments/checkout');

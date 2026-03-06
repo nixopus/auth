@@ -176,6 +176,20 @@
       "when": 1772457648191,
       "tag": "0024_harsh_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1772736405044,
+      "tag": "0025_fantastic_the_call",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1772778489453,
+      "tag": "0026_crazy_red_wolf",
+      "breakpoints": true
     }
   ]
 }

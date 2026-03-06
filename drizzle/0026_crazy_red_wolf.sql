@@ -1,0 +1,1 @@
+ALTER TABLE "credit_accounts" DROP COLUMN "plan_credits_reset_at";

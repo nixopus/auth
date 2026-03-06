@@ -36,6 +36,11 @@ export const config = {
   dodoPaymentsEnvironment: (process.env.DODO_PAYMENTS_ENVIRONMENT || 'test_mode') as 'test_mode' | 'live_mode',
   dodoPaymentsProductId: process.env.DODO_PAYMENTS_PRODUCT_ID || '',
   dodoPaymentsProductSlug: process.env.DODO_PAYMENTS_PRODUCT_SLUG || 'pro-plan',
+  dodoCreditPacks: {
+    pack_1000: { productId: process.env.DODO_CREDITS_1K_PRODUCT_ID || '', credits: 1000 },
+    pack_5000: { productId: process.env.DODO_CREDITS_5K_PRODUCT_ID || '', credits: 5000 },
+    pack_20000: { productId: process.env.DODO_CREDITS_20K_PRODUCT_ID || '', credits: 20000 },
+  },
   // SSH configuration (for installer-generated SSH keys)
   sshHost: process.env.SSH_HOST || '',
   sshPort: parseInt(process.env.SSH_PORT || '22', 10),

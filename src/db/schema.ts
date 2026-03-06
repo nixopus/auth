@@ -13,6 +13,7 @@ import {
   pgEnum,
   check,
   bigint,
+  numeric,
 } from "drizzle-orm/pg-core";
 
 /** User provisioning state: one-time LXD provision per user */
@@ -931,6 +932,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
     references: [userPreferences.userId],
   }),
   userProvisionDetails: many(userProvisionDetails),
+  aiUsageLogs: many(aiUsageLogs),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -959,6 +961,9 @@ export const organizationRelations = relations(organization, ({ many }) => ({
   organizationSettings: many(organizationSettings),
   sshKeys: many(sshKeys),
   userProvisionDetails: many(userProvisionDetails),
+  creditAccounts: many(creditAccounts),
+  creditTransactions: many(creditTransactions),
+  aiUsageLogs: many(aiUsageLogs),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -1623,3 +1628,130 @@ export const userProvisionDetailsRelations = relations(
     }),
   }),
 );
+
+export const creditAccounts = pgTable(
+  "credit_accounts",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    planCredits: integer("plan_credits").default(0).notNull(),
+    purchasedCredits: integer("purchased_credits").default(0).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_credit_accounts_organization_unique").on(table.organizationId),
+  ],
+);
+
+export const creditTransactions = pgTable(
+  "credit_transactions",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    type: varchar("type", { length: 20 }).notNull(),
+    amount: integer("amount").notNull(),
+    balanceAfter: integer("balance_after").notNull(),
+    source: varchar("source", { length: 20 }).notNull(),
+    referenceId: varchar("reference_id", { length: 255 }),
+    description: text("description"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_credit_transactions_org_created").on(table.organizationId, table.createdAt),
+  ],
+);
+
+export const aiUsageLogs = pgTable(
+  "ai_usage_logs",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    modelId: varchar("model_id", { length: 255 }).notNull(),
+    modelTier: varchar("model_tier", { length: 20 }).notNull(),
+    promptTokens: integer("prompt_tokens").default(0).notNull(),
+    completionTokens: integer("completion_tokens").default(0).notNull(),
+    totalTokens: integer("total_tokens").default(0).notNull(),
+    creditsConsumed: integer("credits_consumed").default(0).notNull(),
+    requestType: varchar("request_type", { length: 50 }),
+    agentId: varchar("agent_id", { length: 100 }),
+    workflowId: varchar("workflow_id", { length: 100 }),
+    sessionId: varchar("session_id", { length: 255 }),
+    latencyMs: integer("latency_ms"),
+    status: varchar("status", { length: 20 }).default("success").notNull(),
+    errorMessage: text("error_message"),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_ai_usage_logs_org_created").on(table.organizationId, table.createdAt),
+    index("idx_ai_usage_logs_user_created").on(table.userId, table.createdAt),
+  ],
+);
+
+export const creditModelTiers = pgTable(
+  "credit_model_tiers",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    modelPattern: varchar("model_pattern", { length: 255 }).notNull().unique(),
+    tier: varchar("tier", { length: 20 }).notNull(),
+    multiplier: numeric("multiplier", { precision: 5, scale: 2 }).default("1.0").notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+);
+
+export const creditAccountsRelations = relations(creditAccounts, ({ one }) => ({
+  organization: one(organization, {
+    fields: [creditAccounts.organizationId],
+    references: [organization.id],
+  }),
+}));
+
+export const creditTransactionsRelations = relations(
+  creditTransactions,
+  ({ one }) => ({
+    organization: one(organization, {
+      fields: [creditTransactions.organizationId],
+      references: [organization.id],
+    }),
+  }),
+);
+
+export const aiUsageLogsRelations = relations(aiUsageLogs, ({ one }) => ({
+  organization: one(organization, {
+    fields: [aiUsageLogs.organizationId],
+    references: [organization.id],
+  }),
+  user: one(user, {
+    fields: [aiUsageLogs.userId],
+    references: [user.id],
+  }),
+}));
