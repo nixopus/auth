@@ -265,6 +265,29 @@ export const apikey = pgTable("apikey", {
   metadata: text("metadata"),
 });
 
+export const passkey = pgTable(
+  "passkey",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    name: text("name"),
+    publicKey: text("public_key").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    credentialID: text("credential_id").notNull().unique(),
+    counter: integer("counter").notNull(),
+    deviceType: text("device_type").notNull(),
+    backedUp: boolean("backed_up").notNull(),
+    transports: text("transports"),
+    aaguid: text("aaguid"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("passkey_userId_idx").on(table.userId),
+    index("passkey_credentialID_idx").on(table.credentialID),
+  ],
+);
+
 // Enums
 export const buildPackEnum = pgEnum("build_pack", [
   "dockerfile",
@@ -933,12 +956,20 @@ export const organizationSettings = pgTable(
 );
 
 // Relations
+export const passkeyRelations = relations(passkey, ({ one }) => ({
+  user: one(user, {
+    fields: [passkey.userId],
+    references: [user.id],
+  }),
+}));
+
 export const userRelations = relations(user, ({ one, many }) => ({
   sessions: many(session),
   accounts: many(account),
   members: many(member),
   invitations: many(invitation),
   apiKeys: many(apiKeys),
+  passkeys: many(passkey),
   domains: many(domains),
   applications: many(applications),
   auditLogs: many(auditLogs),

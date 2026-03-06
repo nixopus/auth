@@ -44,6 +44,9 @@ export const config = {
   // Cloudflare Turnstile (captcha)
   turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || '',
 
+  // Passkey (WebAuthn) configuration
+  passkeyRpId: process.env.PASSKEY_RP_ID || 'nixopus.com',
+
   // SSH configuration (for installer-generated SSH keys)
   sshHost: process.env.SSH_HOST || '',
   sshPort: parseInt(process.env.SSH_PORT || '22', 10),

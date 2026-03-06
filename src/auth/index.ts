@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP, organization, deviceAuthorization, bearer, apiKey, captcha } from 'better-auth/plugins';
+import { passkey } from '@better-auth/passkey';
 import { createAuthMiddleware } from 'better-auth/api';
 import {
   dodopayments,
@@ -305,6 +306,11 @@ export const auth = betterAuth({
         timeWindow: 1000 * 60 * 60,
         maxRequests: 1000,
       },
+    }),
+    passkey({
+      rpID: config.passkeyRpId,
+      rpName: 'Nixopus',
+      origin: config.corsAllowedOrigins,
     }),
     // Dodo Payments plugin
     ...(config.dodoPaymentsApiKey
