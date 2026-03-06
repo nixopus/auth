@@ -211,6 +211,13 @@
       "when": 1772789722466,
       "tag": "0029_even_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1772806503751,
+      "tag": "0030_flashy_nocturne",
+      "breakpoints": true
     }
   ]
 }

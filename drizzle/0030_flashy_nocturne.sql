@@ -1,0 +1,1 @@
+ALTER TABLE "applications" ADD COLUMN "source" varchar(20) DEFAULT 'github' NOT NULL;

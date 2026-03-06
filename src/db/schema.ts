@@ -389,6 +389,7 @@ export const applications = pgTable(
     familyId: uuid("family_id"),
     labels: text("labels").array(),
     isLiveDeployment: boolean("is_live_deployment").default(false).notNull(),
+    source: varchar("source", { length: 20 }).default("github").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
