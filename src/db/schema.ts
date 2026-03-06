@@ -346,11 +346,17 @@ export const domains = pgTable(
       .defaultNow()
       .notNull(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    type: varchar("type", { length: 50 }).notNull().default("system"),
+    status: varchar("status", { length: 50 }).notNull().default("active"),
+    verificationToken: varchar("verification_token", { length: 255 }),
+    dnsProvider: varchar("dns_provider", { length: 100 }),
+    targetSubdomain: varchar("target_subdomain", { length: 255 }),
   },
   (table) => [
     index("idx_domains_user_id").on(table.userId),
     index("idx_domains_name").on(table.name),
     uniqueIndex("idx_domains_name_unique").on(table.name),
+    index("idx_domains_type").on(table.type),
   ],
 );
 

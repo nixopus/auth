@@ -45,7 +45,7 @@ export const config = {
   turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || '',
 
   // Passkey (WebAuthn) configuration
-  passkeyRpId: process.env.PASSKEY_RP_ID || 'nixopus.com',
+  passkeyRpId: process.env.PASSKEY_RP_ID || 'localhost',
 
   // SSH configuration (for installer-generated SSH keys)
   sshHost: process.env.SSH_HOST || '',

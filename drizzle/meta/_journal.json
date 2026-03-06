@@ -204,6 +204,13 @@
       "when": 1772783557424,
       "tag": "0028_daffy_purple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1772789722466,
+      "tag": "0029_even_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }
