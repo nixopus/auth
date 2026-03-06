@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { emailOTP, organization, deviceAuthorization, bearer } from 'better-auth/plugins';
+import { emailOTP, organization, deviceAuthorization, bearer, apiKey, captcha } from 'better-auth/plugins';
 import { createAuthMiddleware } from 'better-auth/api';
 import {
   dodopayments,
@@ -258,6 +258,21 @@ export const auth = betterAuth({
       expiresIn: 1300,
       allowedAttempts: 3,
     }),
+    ...(config.turnstileSecretKey
+      ? [
+          captcha({
+            provider: 'cloudflare-turnstile',
+            secretKey: config.turnstileSecretKey,
+            endpoints: [
+              '/email-otp/send-verification-otp',
+              '/sign-in/email-otp',
+              '/sign-in/email',
+              '/sign-up/email',
+              '/forget-password/email-otp',
+            ],
+          }),
+        ]
+      : []),
     organization({
       async sendInvitationEmail(data) {
         // Use data.id as the invitation ID (as per Better Auth docs)
@@ -280,7 +295,17 @@ export const auth = betterAuth({
         return clientId === 'nixopus-cli' || true;
       },
     }),
-    bearer(), // Enable Bearer token authentication for CLI and API access
+    bearer(),
+    apiKey({
+      enableSessionForAPIKeys: true,
+      defaultPrefix: 'nxp_',
+      enableMetadata: true,
+      rateLimit: {
+        enabled: true,
+        timeWindow: 1000 * 60 * 60,
+        maxRequests: 1000,
+      },
+    }),
     // Dodo Payments plugin
     ...(config.dodoPaymentsApiKey
       ? [

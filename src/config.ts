@@ -41,6 +41,9 @@ export const config = {
     pack_5000: { productId: process.env.DODO_CREDITS_5K_PRODUCT_ID || '', credits: 5000 },
     pack_20000: { productId: process.env.DODO_CREDITS_20K_PRODUCT_ID || '', credits: 20000 },
   },
+  // Cloudflare Turnstile (captcha)
+  turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || '',
+
   // SSH configuration (for installer-generated SSH keys)
   sshHost: process.env.SSH_HOST || '',
   sshPort: parseInt(process.env.SSH_PORT || '22', 10),

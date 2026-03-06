@@ -1,0 +1,23 @@
+CREATE TABLE "apikey" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text,
+	"start" text,
+	"prefix" text,
+	"key" text NOT NULL,
+	"userId" text NOT NULL,
+	"refillInterval" integer,
+	"refillAmount" integer,
+	"lastRefillAt" timestamp,
+	"enabled" boolean DEFAULT true NOT NULL,
+	"rateLimitEnabled" boolean DEFAULT false NOT NULL,
+	"rateLimitTimeWindow" integer,
+	"rateLimitMax" integer,
+	"requestCount" integer DEFAULT 0 NOT NULL,
+	"remaining" integer,
+	"lastRequest" timestamp,
+	"expiresAt" timestamp,
+	"createdAt" timestamp DEFAULT now() NOT NULL,
+	"updatedAt" timestamp DEFAULT now() NOT NULL,
+	"permissions" text,
+	"metadata" text
+);

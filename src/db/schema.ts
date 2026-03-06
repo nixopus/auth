@@ -241,6 +241,30 @@ export const apiKeys = pgTable(
   ],
 );
 
+export const apikey = pgTable("apikey", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name"),
+  start: text("start"),
+  prefix: text("prefix"),
+  key: text("key").notNull(),
+  userId: text("userId").notNull(),
+  refillInterval: integer("refillInterval"),
+  refillAmount: integer("refillAmount"),
+  lastRefillAt: timestamp("lastRefillAt"),
+  enabled: boolean("enabled").notNull().default(true),
+  rateLimitEnabled: boolean("rateLimitEnabled").notNull().default(false),
+  rateLimitTimeWindow: integer("rateLimitTimeWindow"),
+  rateLimitMax: integer("rateLimitMax"),
+  requestCount: integer("requestCount").notNull().default(0),
+  remaining: integer("remaining"),
+  lastRequest: timestamp("lastRequest"),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  permissions: text("permissions").$defaultFn(() => ''),
+  metadata: text("metadata"),
+});
+
 // Enums
 export const buildPackEnum = pgEnum("build_pack", [
   "dockerfile",
