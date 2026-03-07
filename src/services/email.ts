@@ -5,7 +5,7 @@ import { templateManager, TEMPLATE_IDS } from './templates.js';
 export interface SendOTPEmailParams {
   email: string;
   otp: string;
-  type: 'sign-in' | 'email-verification' | 'forget-password';
+  type: 'sign-in' | 'email-verification' | 'forget-password' | 'change-email';
 }
 
 export interface SendInvitationEmailParams {
@@ -143,7 +143,7 @@ export class EmailService {
   /**
    * Fallback HTML for OTP emails (used when templates are not available)
    */
-  private getOTPHTML(type: 'sign-in' | 'email-verification' | 'forget-password', otp: string): string {
+  private getOTPHTML(type: 'sign-in' | 'email-verification' | 'forget-password' | 'change-email', otp: string): string {
     const isPasswordReset = type === 'forget-password';
     const heading = isPasswordReset ? 'Your password reset code is:' : 'Your verification code is:';
     const footerText = isPasswordReset

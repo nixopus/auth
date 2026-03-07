@@ -52,7 +52,7 @@ function buildOTPVerificationResponse(context: any): { success: boolean; isNewUs
   return responseData;
 }
 
-async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' }) {
+async function sendVerificationOTP({ email, otp, type }: { email: string; otp: string; type: 'sign-in' | 'email-verification' | 'forget-password' | 'change-email' }) {
   await emailService.sendVerificationOTP({ email, otp, type });
 }
 
@@ -101,7 +101,6 @@ async function grantPlanCredits(orgId: string, credits: number, referenceId: str
     const [updated] = await tx.update(schema.creditAccounts)
       .set({
         planCredits: credits,
-        planCreditsResetAt: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(schema.creditAccounts.organizationId, orgId))

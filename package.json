@@ -22,7 +22,7 @@
   "dependencies": {
     "@better-auth/passkey": "1.4.18",
     "@dodopayments/better-auth": "^1.4.2",
-    "better-auth": "^1.4.15",
+    "better-auth": "1.4.17",
     "dodopayments": "^2.17.2",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.0.0",
