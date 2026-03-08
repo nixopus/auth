@@ -88,6 +88,59 @@ function getPlanTier(productId: string, metadata: Record<string, any> | null): s
   return 'free';
 }
 
+const PLAN_RESOURCE_MAP: Record<string, { vcpu: number; memoryMB: number }> = {
+  free: { vcpu: 1, memoryMB: 1024 },
+  pro: { vcpu: 2, memoryMB: 2048 },
+};
+
+async function getUserIdFromEmail(email: string): Promise<string | null> {
+  const rows = await db
+    .select({ id: schema.user.id })
+    .from(schema.user)
+    .where(eq(schema.user.email, email))
+    .limit(1);
+  return rows[0]?.id ?? null;
+}
+
+async function triggerResourceUpgrade(email: string, planTier: string): Promise<void> {
+  const resources = PLAN_RESOURCE_MAP[planTier] ?? PLAN_RESOURCE_MAP.free;
+
+  const userId = await getUserIdFromEmail(email);
+  if (!userId) {
+    console.error(`triggerResourceUpgrade: no user found for email ${email}`);
+    return;
+  }
+
+  const orgId = await getOrgIdFromCustomerEmail(email);
+  if (!orgId) {
+    console.error(`triggerResourceUpgrade: no org found for email ${email}`);
+    return;
+  }
+
+  const url = `${config.nixopusApiUrl}/api/v1/trail/upgrade-resources`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': config.betterAuthSecret,
+    },
+    body: JSON.stringify({
+      user_id: userId,
+      org_id: orgId,
+      vcpu_count: resources.vcpu,
+      memory_mb: resources.memoryMB,
+    }),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    console.error(`triggerResourceUpgrade failed (${resp.status}): ${text}`);
+    return;
+  }
+
+  console.log(`Resource upgrade triggered for user ${userId} -> ${planTier} (${resources.vcpu} vCPU, ${resources.memoryMB} MB)`);
+}
+
 async function grantPlanCredits(orgId: string, credits: number, referenceId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.insert(schema.creditAccounts).values({
@@ -351,6 +404,14 @@ export const auth = betterAuth({
                       const credits = PLAN_CREDIT_ALLOCATIONS[tier] ?? PLAN_CREDIT_ALLOCATIONS.free;
                       await grantPlanCredits(orgId, credits, payload.data.subscription_id);
                       console.log(`Granted ${credits} plan credits (${tier}) to org ${orgId}`);
+
+                      if (payload.type === 'subscription.active' || payload.type === 'subscription.plan_changed') {
+                        try {
+                          await triggerResourceUpgrade(payload.data.customer.email, tier);
+                        } catch (upgradeErr) {
+                          console.error('Failed to trigger resource upgrade:', upgradeErr);
+                        }
+                      }
                     } catch (error) {
                       console.error('Failed to grant plan credits:', error);
                     }
