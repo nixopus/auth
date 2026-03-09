@@ -11,7 +11,8 @@ describe('config derivation', () => {
     });
 
     test('is false when SELF_HOSTED=false', () => {
-      expect('false' === 'true').toBe(false);
+      const selfHosted: string = 'false';
+      expect(selfHosted === 'true').toBe(false);
     });
   });
 

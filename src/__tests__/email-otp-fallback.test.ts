@@ -23,7 +23,7 @@ describe('seedAdminUser logic', () => {
 
   test('skips when users already exist', () => {
     const adminEmail = 'admin@example.com';
-    const userCount = 1;
+    const userCount: number = 1;
     const shouldSeed = !!adminEmail && userCount === 0;
     expect(shouldSeed).toBe(false);
   });
