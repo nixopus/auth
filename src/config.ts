@@ -1,3 +1,17 @@
+import { existsSync, readFileSync } from 'fs';
+
+function resolveSSHPrivateKey(value: string): string {
+  if (!value || value.startsWith('-----BEGIN')) return value;
+  try {
+    if (existsSync(value)) {
+      return readFileSync(value, 'utf8').trim();
+    }
+  } catch {
+    // ignore
+  }
+  return value;
+}
+
 export const config = {
   // Environment
   nodeEnv: process.env.NODE_ENV || 'development',
@@ -55,6 +69,6 @@ export const config = {
   sshHost: process.env.SSH_HOST || '',
   sshPort: parseInt(process.env.SSH_PORT || '22', 10),
   sshUser: process.env.SSH_USER || 'root',
-  sshPrivateKey: process.env.SSH_PRIVATE_KEY || '',
+  sshPrivateKey: resolveSSHPrivateKey(process.env.SSH_PRIVATE_KEY || ''),
   sshPassword: process.env.SSH_PASSWORD || '',
 } as const;

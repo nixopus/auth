@@ -261,41 +261,18 @@ async function getInitialOrganization(userId: string): Promise<{ id: string } | 
   return org;
 }
 
-async function checkIfUserHasCredentialAccount(userId: string): Promise<boolean> {
-  try {
-    const accounts = await db
-      .select()
-      .from(schema.account)
-      .where(and(
-        eq(schema.account.userId, userId),
-        eq(schema.account.providerId, 'credential')
-      ))
-      .limit(1);
-
-    const hasCredential = accounts.length > 0;
-    logger.debug({ userId, hasCredential }, 'credential account check');
-    return hasCredential;
-  } catch (error) {
-    logger.error({ err: error, userId }, 'failed to check credential account');
-    return false;
-  }
-}
-
 async function loadSSHCredentialsForUser(userId: string, organizationId: string, userEmail: string): Promise<void> {
   try {
-    const hasCredentialAccount = await checkIfUserHasCredentialAccount(userId);
-
     logger.debug({
       userId,
       organizationId,
-      hasCredentialAccount,
       sshHostSet: !!config.sshHost,
       sshKeySet: !!config.sshPrivateKey,
     }, 'SSH credential loading decision');
 
-    if (hasCredentialAccount && config.sshHost && config.sshPrivateKey) {
+    if (config.selfHosted && config.sshHost && config.sshPrivateKey) {
       await createSSHKeyEntry(organizationId, userEmail);
-    } else if (hasCredentialAccount) {
+    } else if (config.selfHosted) {
       logger.warn({ userEmail }, 'SSH credentials not available in environment');
     }
   } catch (error) {
