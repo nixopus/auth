@@ -39,15 +39,12 @@ The service will be available at `http://localhost:8080`
 | `HOST` | Server hostname | `0.0.0.0` | No |
 | `NODE_ENV` | Environment mode | `development` | No |
 | `DATABASE_URL` | PostgreSQL connection string | - | Yes (production) |
-| `BETTER_AUTH_URL` | Base URL for Better Auth | `http://localhost:8080` | No |
-| `BETTER_AUTH_SECRET` | Secret key for Better Auth | - | Yes |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated list of allowed origins | `http://localhost:3000,...` | No |
+| `AUTH_SERVICE_URL` | Base URL for auth service | `http://localhost:8080` | No |
+| `AUTH_SERVICE_SECRET` | Secret key for auth service | - | Yes |
+| `ALLOWED_ORIGIN` | Comma-separated list of allowed origins | `http://localhost:3000,...` | No |
 | `RESEND_API_KEY` | Resend API key for email | - | Yes (for email) |
 | `RESEND_FROM_EMAIL` | Default sender email | `test@test.com` | No |
 | `SECRET_MANAGER_ENABLED` | Enable secret manager | `false` | No |
-| `SECRET_MANAGER_TYPE` | Secret manager type (`infisical`, `none`) | `none` | No |
-| `INFISICAL_URL` | Infisical API URL | `https://app.infisical.com` | No |
-| `INFISICAL_TOKEN` | Infisical API token | - | No |
 
 ### CORS Configuration
 
@@ -55,19 +52,19 @@ The service supports configurable CORS policies. Default allowed origins include
 - `http://localhost:3000` (development)
 - `http://localhost:7443` (development)
 
-To customize, set the `CORS_ALLOWED_ORIGINS` environment variable with comma-separated origins (e.g., `https://view.example.com,https://api.example.com`).
+To customize, set the `ALLOWED_ORIGIN` environment variable with comma-separated origins (e.g., `https://view.example.com,https://api.example.com`).
 
 ### Cookie Configuration
 
 For production deployments with custom domains, configure cookie settings:
 
-- `BETTER_AUTH_COOKIE_DOMAIN`: Base domain for cross-subdomain cookies (e.g., `.example.com`). When set, cookies will be shared across all subdomains.
-- `BETTER_AUTH_SECURE_COOKIES`: Set to `true` to enable Secure flag on cookies (required for HTTPS).
+- `AUTH_COOKIE_DOMAIN`: Base domain for cross-subdomain cookies (e.g., `.example.com`). When set, cookies will be shared across all subdomains.
+- `AUTH_SECURE_COOKIES`: Set to `true` to enable Secure flag on cookies (required for HTTPS).
 
 Example:
 ```env
-BETTER_AUTH_COOKIE_DOMAIN=.example.com
-BETTER_AUTH_SECURE_COOKIES=true
+AUTH_COOKIE_DOMAIN=.example.com
+AUTH_SECURE_COOKIES=true
 ```
 
 This allows authentication to work across subdomains (e.g., `auth.example.com` to `view.example.com`).

@@ -3,6 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP, organization, deviceAuthorization, bearer, apiKey, captcha } from 'better-auth/plugins';
 import { passkey } from '@better-auth/passkey';
 import { createAuthMiddleware } from 'better-auth/api';
+import { hasExistingUsers, assertRegistrationAllowed, assertInvitationsAllowed, type GetUserCountFn } from './self-hosted-guard.js';
 import {
   dodopayments,
   checkout,
@@ -56,10 +57,20 @@ async function sendVerificationOTP({ email, otp, type }: { email: string; otp: s
   await emailService.sendVerificationOTP({ email, otp, type });
 }
 
-export const dodoPayments = new DodoPayments({
-  bearerToken: config.dodoPaymentsApiKey,
-  environment: config.dodoPaymentsEnvironment,
-});
+const getUserCount: GetUserCountFn = async () => {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(schema.user)
+    .limit(1);
+  return row?.count ?? 0;
+};
+
+export const dodoPayments = config.dodoPaymentsApiKey
+  ? new DodoPayments({
+      bearerToken: config.dodoPaymentsApiKey,
+      environment: config.dodoPaymentsEnvironment,
+    })
+  : null;
 
 const PLAN_CREDIT_ALLOCATIONS: Record<string, number> = {
   free: 500,
@@ -269,6 +280,49 @@ async function loadSSHCredentialsForUser(userId: string, organizationId: string,
   }
 }
 
+export async function setupNewUser(user: { id: string; email: string; name: string | null }): Promise<void> {
+  if (!user.name || user.name.trim().length === 0) {
+    const fallbackName = user.email.split('@')[0];
+    await db.update(schema.user)
+      .set({ name: fallbackName })
+      .where(eq(schema.user.id, user.id));
+    user.name = fallbackName;
+  }
+
+  try {
+    const userName = user.name || user.email.split('@')[0];
+    const baseSlug = userName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const uuidSuffix = randomUUID().replace(/-/g, '').substring(0, 8);
+    const slug = `${baseSlug}-${uuidSuffix}`;
+
+    const orgId = randomUUID();
+    const orgName = `${userName}'s Team`;
+
+    await db.insert(schema.organization).values({
+      id: orgId,
+      name: orgName,
+      slug: slug,
+      createdAt: new Date(),
+      metadata: JSON.stringify({ description: 'Default organization' }),
+    });
+
+    const memberId = randomUUID();
+    await db.insert(schema.member).values({
+      id: memberId,
+      organizationId: orgId,
+      userId: user.id,
+      role: 'owner',
+      createdAt: new Date(),
+    });
+
+    console.log(`Created default organization "${orgName}" (${orgId}) for user ${user.email}`);
+
+    await loadSSHCredentialsForUser(user.id, orgId, user.email);
+  } catch (error) {
+    console.error(`Failed to create default organization for user ${user.email}:`, error);
+  }
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: 'pg',
@@ -365,7 +419,7 @@ export const auth = betterAuth({
       origin: config.corsAllowedOrigins,
     }),
     // Dodo Payments plugin
-    ...(config.dodoPaymentsApiKey
+    ...(config.dodoPaymentsApiKey && dodoPayments
       ? [
           dodopayments({
             client: dodoPayments,
@@ -462,49 +516,11 @@ export const auth = betterAuth({
     },
     user: {
       create: {
+        before: async () => {
+          await assertRegistrationAllowed(config.selfHosted, getUserCount);
+        },
         after: async (user) => {
-          // Ensure user has a non-empty name (required for DodoPayments checkout)
-          if (!user.name || user.name.trim().length === 0) {
-            const fallbackName = user.email.split('@')[0];
-            await db.update(schema.user)
-              .set({ name: fallbackName })
-              .where(eq(schema.user.id, user.id));
-            user.name = fallbackName;
-          }
-          
-          // Create a default organization for the new user
-          try {
-            const userName = user.name || user.email.split('@')[0];
-            const baseSlug = userName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            const uuidSuffix = randomUUID().replace(/-/g, '').substring(0, 8);
-            const slug = `${baseSlug}-${uuidSuffix}`;
-            
-            const orgId = randomUUID();
-            const orgName = `${userName}'s Team`;
-            
-            await db.insert(schema.organization).values({
-              id: orgId,
-              name: orgName,
-              slug: slug,
-              createdAt: new Date(),
-              metadata: JSON.stringify({ description: 'Default organization' }),
-            });
-
-            const memberId = randomUUID();
-            await db.insert(schema.member).values({
-              id: memberId,
-              organizationId: orgId,
-              userId: user.id,
-              role: 'owner',
-              createdAt: new Date(),
-            });
-
-            console.log(`Created default organization "${orgName}" (${orgId}) for user ${user.email}`);
-
-            await loadSSHCredentialsForUser(user.id, orgId, user.email);
-          } catch (error) {
-            console.error(`Failed to create default organization for user ${user.email}:`, error);
-          }
+          await setupNewUser(user);
         },
       },
     },
@@ -514,6 +530,30 @@ export const auth = betterAuth({
     updateAge: 60 * 60 * 24, // 1 day
   },
   hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (!config.selfHosted) return;
+
+      if (ctx.path === '/organization/invite-member') {
+        assertInvitationsAllowed(config.selfHosted);
+      }
+
+      if (ctx.path === '/sign-up/email') {
+        await assertRegistrationAllowed(config.selfHosted, getUserCount);
+      }
+
+      if (ctx.path === '/email-otp/send-verification-otp') {
+        const body = ctx.body as { email?: string; type?: string };
+        if (body.type === 'sign-in' && body.email) {
+          const exists = await hasExistingUsers(getUserCount);
+          if (exists) {
+            const userId = await getUserIdFromEmail(body.email);
+            if (!userId) {
+              await assertRegistrationAllowed(config.selfHosted, getUserCount);
+            }
+          }
+        }
+      }
+    }),
     after: createAuthMiddleware(async (ctx) => {
       const isEmailOTPSend = ctx.path === '/email-otp/send-verification-otp';
       const isEmailOTPVerify = ctx.path === '/email-otp/check-verification-otp';

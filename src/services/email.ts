@@ -40,6 +40,11 @@ export class EmailService {
   async sendVerificationOTP(params: SendOTPEmailParams): Promise<void> {
     const { email, otp, type } = params;
 
+    if (!config.resendApiKey) {
+      console.log(`[Self-Hosted OTP] Code for ${email} (${type}): ${otp}`);
+      return;
+    }
+
     const subject = type === 'forget-password' ? 'Reset your password' : 'Your verification code';
     const templateId = templateManager.getTemplateId(
       type === 'forget-password'

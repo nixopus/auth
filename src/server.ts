@@ -9,9 +9,12 @@ import { cors } from 'hono/cors';
 import { config } from './config.js';
 import { authHandler } from './auth/handler.js';
 import { auth, dodoPayments } from './auth/index.js';
+import { seedAdminUser } from './auth/seed-admin.js';
 import { db } from './db/index.js';
 import * as schema from './db/schema.js';
 import { eq } from 'drizzle-orm';
+
+await seedAdminUser();
 
 const app = new Hono();
 
@@ -38,6 +41,10 @@ app.get('/health', (c) => {
 
 app.post('/api/credits/checkout', async (c) => {
   try {
+    if (!dodoPayments) {
+      return c.json({ error: 'Payments not configured' }, 503);
+    }
+
     const session = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!session?.user) {
       return c.json({ error: 'Unauthorized' }, 401);

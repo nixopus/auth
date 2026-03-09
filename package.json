@@ -11,7 +11,8 @@
     "db:generate": "bunx drizzle-kit generate",
     "db:migrate": "bunx drizzle-kit migrate",
     "db:push": "bunx drizzle-kit push",
-    "auth:generate": "bunx @better-auth/cli generate"
+    "auth:generate": "bunx @better-auth/cli generate",
+    "test": "bun test"
   },
   "keywords": [],
   "author": "",

@@ -8,9 +8,8 @@ services:
       - "9090:9090"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-auth}?sslmode=disable
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-change-me-in-production}
-      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:9090}
-      - BETTER_AUTH_BASE_URL=${BETTER_AUTH_BASE_URL:-http://localhost:9090}
+      - AUTH_SERVICE_SECRET=${AUTH_SERVICE_SECRET:-change-me-in-production}
+      - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://localhost:9090}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-}
     depends_on:
