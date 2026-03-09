@@ -1,7 +1,4 @@
-/**
- * Secret Manager Integration for TypeScript/Node.js services
- * Supports Infisical secret manager
- */
+import { logger } from './logger.js';
 
 export type SecretManagerType = 'none' | 'infisical';
 
@@ -141,9 +138,7 @@ class InfisicalManager implements SecretManager {
       const body = await response.text();
       // Handle 404 gracefully - secrets might not exist yet
       if (response.status === 404) {
-        console.warn(
-          `Warning: No secrets found at path '${secretPath}' in environment '${envSlug}'. This is normal if secrets haven't been created yet.`
-        );
+        logger.warn({ secretPath, environment: envSlug }, 'no secrets found at path (normal if secrets have not been created)');
         return {};
       }
       throw new Error(
@@ -231,7 +226,7 @@ export async function loadSecretsIntoEnv(
       }
     }
   } catch (error) {
-    console.error('Failed to load secrets:', error);
+    logger.error({ err: error }, 'failed to load secrets');
     throw error;
   }
 }

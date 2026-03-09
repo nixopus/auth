@@ -1,4 +1,5 @@
 import { resendService } from './resend.js';
+import { logger } from '../logger.js';
 
 /**
  * Template IDs - these should match the template names in Resend
@@ -22,13 +23,12 @@ export class TemplateManager {
    * This will create templates if they don't exist, or verify they exist
    */
   async initializeTemplates(): Promise<void> {
-    console.log('Initializing Resend email templates...');
+    logger.info('initializing resend email templates');
 
     // Check if API key is restricted (can only send emails, not manage templates)
     const isRestricted = await this.checkIfApiKeyIsRestricted();
     if (isRestricted) {
-      console.log('⚠️  Resend API key is restricted to sending emails only. Templates will not be initialized.');
-      console.log('   Emails will use inline HTML instead. To use templates, upgrade to a full-access API key.');
+      logger.warn('resend API key is restricted to sending only, templates will not be initialized');
       return;
     }
 
@@ -63,9 +63,9 @@ export class TemplateManager {
         this.getOrganizationInvitationTemplate()
       );
 
-      console.log('All email templates initialized successfully');
+      logger.info('all email templates initialized');
     } catch (error) {
-      console.error('Failed to initialize email templates:', error);
+      logger.error({ err: error }, 'failed to initialize email templates');
       throw error;
     }
   }
@@ -141,25 +141,25 @@ export class TemplateManager {
         }
         // Handle rate limit errors
         if (errorMessage.includes('too many requests') || errorMessage.includes('rate limit')) {
-          console.warn(`Rate limit hit while listing templates. Retrying after delay...`);
+          logger.warn('rate limit hit while listing templates, retrying');
           await this.delay(1000); // Wait 1 second before retrying
           // Retry once
           const retryTemplates = await resendService.listTemplates({ limit: 100 });
           if (retryTemplates.error) {
-            console.warn(`Error listing templates after retry: ${retryTemplates.error.message}`);
+            logger.warn({ error: retryTemplates.error.message }, 'error listing templates after retry');
             // Continue to try creating template anyway
           } else if (retryTemplates.data && !retryTemplates.error) {
             const templateList = retryTemplates.data.data;
             const existingTemplate = templateList.find((t) => t.name === templateName);
             if (existingTemplate) {
-              console.log(`Template "${templateName}" already exists (ID: ${existingTemplate.id})`);
+              logger.debug({ templateName, templateId: existingTemplate.id }, 'template already exists');
               this.templateIdMap.set(templateName, existingTemplate.id);
               return existingTemplate.id;
             }
           }
         } else {
           // For other errors, log and continue
-          console.warn(`Error listing templates: ${templates.error.message}`);
+          logger.warn({ error: templates.error.message }, 'error listing templates');
         }
       } else if (templates.data && !templates.error) {
         // TypeScript now knows templates.data is ListTemplatesResponseSuccess
@@ -170,14 +170,14 @@ export class TemplateManager {
         );
 
         if (existingTemplate) {
-          console.log(`Template "${templateName}" already exists (ID: ${existingTemplate.id})`);
+          logger.debug({ templateName, templateId: existingTemplate.id }, 'template already exists');
           this.templateIdMap.set(templateName, existingTemplate.id);
           return existingTemplate.id;
         }
       }
 
       // Create new template
-      console.log(`Creating template "${templateName}"...`);
+      logger.info({ templateName }, 'creating template');
       const result = await resendService.createAndPublishTemplate({
         name: templateName,
         html,
@@ -185,7 +185,7 @@ export class TemplateManager {
       });
 
       if (result.data?.id) {
-        console.log(`Template "${templateName}" created successfully (ID: ${result.data.id})`);
+        logger.info({ templateName, templateId: result.data.id }, 'template created');
         this.templateIdMap.set(templateName, result.data.id);
         return result.data.id;
       }
@@ -203,10 +203,10 @@ export class TemplateManager {
       }
       // Handle rate limit errors
       if (errorMessage.includes('too many requests') || errorMessage.includes('rate limit')) {
-        console.warn(`Rate limit hit while ensuring template "${templateName}". Skipping template creation.`);
+        logger.warn({ templateName }, 'rate limit hit, skipping template creation');
         return '';
       }
-      console.error(`Error ensuring template "${templateName}":`, error);
+      logger.error({ err: error, templateName }, 'error ensuring template');
       // Don't throw - allow fallback to inline HTML
       return '';
     }

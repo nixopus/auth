@@ -3,6 +3,7 @@
  * This should be imported at the very beginning of the application entry point
  */
 import { loadSecretManagerConfig, createSecretManager, loadSecretsIntoEnv } from './secrets.js';
+import { logger } from './logger.js';
 
 let secretsInitialized = false;
 let secretsInitPromise: Promise<void> | null = null;
@@ -21,9 +22,7 @@ export async function initializeSecrets(): Promise<void> {
     }
     secretsInitialized = true;
   } catch (error: any) {
-    console.warn(
-      `[Secrets] ⚠ Warning: Failed to load secrets from secret manager: ${error.message}. Falling back to .env files`
-    );
+    logger.warn({ err: error }, 'failed to load secrets from secret manager, falling back to .env');
     secretsInitialized = true; // Mark as initialized to prevent retries
   }
 }
@@ -32,7 +31,7 @@ export async function initializeSecrets(): Promise<void> {
 // This runs before config.ts is evaluated, ensuring secrets are loaded into process.env
 if (typeof window === 'undefined') {
   secretsInitPromise = initializeSecrets().catch((error) => {
-    console.error('[Secrets] Failed to initialize secrets:', error);
+    logger.error({ err: error }, 'failed to initialize secrets');
   });
 }
 

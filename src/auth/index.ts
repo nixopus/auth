@@ -14,6 +14,7 @@ import {
 import DodoPayments from 'dodopayments';
 import { db } from '../db/index.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import * as schema from '../db/schema.js';
 import { randomUUID } from 'crypto';
 import { emailService } from '../services/email.js';
@@ -29,7 +30,7 @@ async function checkIfUserExists(email: string): Promise<boolean> {
     
     return existingUser.length === 0;
   } catch (error) {
-    console.error(`Failed to check if user exists for ${email}:`, error);
+    logger.error({ err: error, email }, 'failed to check if user exists');
     return false;
   }
 }
@@ -118,13 +119,13 @@ async function triggerResourceUpgrade(email: string, planTier: string): Promise<
 
   const userId = await getUserIdFromEmail(email);
   if (!userId) {
-    console.error(`triggerResourceUpgrade: no user found for email ${email}`);
+    logger.error({ email }, 'triggerResourceUpgrade: no user found');
     return;
   }
 
   const orgId = await getOrgIdFromCustomerEmail(email);
   if (!orgId) {
-    console.error(`triggerResourceUpgrade: no org found for email ${email}`);
+    logger.error({ email }, 'triggerResourceUpgrade: no org found');
     return;
   }
 
@@ -145,11 +146,11 @@ async function triggerResourceUpgrade(email: string, planTier: string): Promise<
 
   if (!resp.ok) {
     const text = await resp.text();
-    console.error(`triggerResourceUpgrade failed (${resp.status}): ${text}`);
+    logger.error({ status: resp.status, body: text }, 'triggerResourceUpgrade failed');
     return;
   }
 
-  console.log(`Resource upgrade triggered for user ${userId} -> ${planTier} (${resources.vcpu} vCPU, ${resources.memoryMB} MB)`);
+  logger.info({ userId, planTier, vcpu: resources.vcpu, memoryMB: resources.memoryMB }, 'resource upgrade triggered');
 }
 
 async function grantPlanCredits(orgId: string, credits: number, referenceId: string): Promise<void> {
@@ -214,9 +215,19 @@ async function addPurchasedCredits(orgId: string, credits: number, referenceId: 
 
 async function createSSHKeyEntry(organizationId: string, userEmail: string): Promise<void> {
   const authMethod = config.sshPassword ? 'password' : 'key';
-  
+  const sshKeyId = randomUUID();
+
+  logger.debug({
+    sshKeyId,
+    organizationId,
+    host: config.sshHost,
+    port: config.sshPort,
+    user: config.sshUser,
+    authMethod,
+  }, 'inserting SSH key entry');
+
   await db.insert(schema.sshKeys).values({
-    id: randomUUID(),
+    id: sshKeyId,
     organizationId: organizationId,
     name: 'Default SSH Key',
     description: 'SSH key generated during installer',
@@ -231,7 +242,7 @@ async function createSSHKeyEntry(organizationId: string, userEmail: string): Pro
     updatedAt: new Date(),
   });
 
-  console.log(`Created SSH key entry for organization ${organizationId} (user: ${userEmail})`);
+  logger.info({ sshKeyId, organizationId, userEmail, authMethod }, 'created SSH key entry');
 }
 
 async function getInitialOrganization(userId: string): Promise<{ id: string } | null> {
@@ -245,7 +256,9 @@ async function getInitialOrganization(userId: string): Promise<{ id: string } | 
     .where(eq(schema.member.userId, userId))
     .orderBy(asc(schema.member.createdAt))
     .limit(1);
-  return rows[0] ?? null;
+  const org = rows[0] ?? null;
+  logger.debug({ userId, organizationId: org?.id ?? null }, 'resolved initial organization');
+  return org;
 }
 
 async function checkIfUserHasCredentialAccount(userId: string): Promise<boolean> {
@@ -259,9 +272,11 @@ async function checkIfUserHasCredentialAccount(userId: string): Promise<boolean>
       ))
       .limit(1);
 
-    return accounts.length > 0;
+    const hasCredential = accounts.length > 0;
+    logger.debug({ userId, hasCredential }, 'credential account check');
+    return hasCredential;
   } catch (error) {
-    console.error(`Failed to check credential account for user ${userId}:`, error);
+    logger.error({ err: error, userId }, 'failed to check credential account');
     return false;
   }
 }
@@ -270,23 +285,34 @@ async function loadSSHCredentialsForUser(userId: string, organizationId: string,
   try {
     const hasCredentialAccount = await checkIfUserHasCredentialAccount(userId);
 
+    logger.debug({
+      userId,
+      organizationId,
+      hasCredentialAccount,
+      sshHostSet: !!config.sshHost,
+      sshKeySet: !!config.sshPrivateKey,
+    }, 'SSH credential loading decision');
+
     if (hasCredentialAccount && config.sshHost && config.sshPrivateKey) {
       await createSSHKeyEntry(organizationId, userEmail);
     } else if (hasCredentialAccount) {
-      console.log(`SSH credentials not available in environment for user ${userEmail}`);
+      logger.warn({ userEmail }, 'SSH credentials not available in environment');
     }
   } catch (error) {
-    console.error(`Failed to create SSH key entry for user ${userEmail}:`, error);
+    logger.error({ err: error, userEmail, organizationId }, 'failed to create SSH key entry');
   }
 }
 
 export async function setupNewUser(user: { id: string; email: string; name: string | null }): Promise<void> {
+  logger.debug({ userId: user.id, email: user.email, name: user.name }, 'setting up new user');
+
   if (!user.name || user.name.trim().length === 0) {
     const fallbackName = user.email.split('@')[0];
     await db.update(schema.user)
       .set({ name: fallbackName })
       .where(eq(schema.user.id, user.id));
     user.name = fallbackName;
+    logger.debug({ userId: user.id, fallbackName }, 'user name was empty, set fallback');
   }
 
   try {
@@ -297,6 +323,8 @@ export async function setupNewUser(user: { id: string; email: string; name: stri
 
     const orgId = randomUUID();
     const orgName = `${userName}'s Team`;
+
+    logger.debug({ orgId, orgName, slug, userId: user.id }, 'creating organization');
 
     await db.insert(schema.organization).values({
       id: orgId,
@@ -315,11 +343,11 @@ export async function setupNewUser(user: { id: string; email: string; name: stri
       createdAt: new Date(),
     });
 
-    console.log(`Created default organization "${orgName}" (${orgId}) for user ${user.email}`);
+    logger.info({ orgId, orgName, email: user.email }, 'created default organization');
 
     await loadSSHCredentialsForUser(user.id, orgId, user.email);
   } catch (error) {
-    console.error(`Failed to create default organization for user ${user.email}:`, error);
+    logger.error({ err: error, email: user.email }, 'failed to create default organization');
   }
 }
 
@@ -382,10 +410,8 @@ export const auth = betterAuth({
       : []),
     organization({
       async sendInvitationEmail(data) {
-        // Use data.id as the invitation ID (as per Better Auth docs)
-        // The invitation ID is used as the token for accepting invitations
         const invitationUrl = `${config.betterAuthUrl}/auth/organization-invite?token=${data.id}`;
-        
+        logger.debug({ email: data.email, organizationName: data.organization.name, invitationId: data.id }, 'sending organization invitation');
         await emailService.sendInvitationEmail({
           email: data.email,
           organizationName: data.organization.name,
@@ -441,7 +467,7 @@ export const auth = betterAuth({
               webhooks({
                 webhookKey: config.dodoPaymentsWebhookSecret,
                 onPayload: async (payload: any) => {
-                  console.log('Received Dodo Payments webhook:', payload.type);
+                  logger.info({ webhookType: payload.type }, 'received dodo payments webhook');
 
                   if (
                     payload.type === 'subscription.active' ||
@@ -451,23 +477,23 @@ export const auth = betterAuth({
                     try {
                       const orgId = await getOrgIdFromCustomerEmail(payload.data.customer.email);
                       if (!orgId) {
-                        console.error(`No organization found for customer: ${payload.data.customer.email}`);
+                        logger.error({ email: payload.data.customer.email }, 'no organization found for customer');
                         return;
                       }
                       const tier = getPlanTier(payload.data.product_id, payload.data.metadata);
                       const credits = PLAN_CREDIT_ALLOCATIONS[tier] ?? PLAN_CREDIT_ALLOCATIONS.free;
                       await grantPlanCredits(orgId, credits, payload.data.subscription_id);
-                      console.log(`Granted ${credits} plan credits (${tier}) to org ${orgId}`);
+                      logger.info({ orgId, credits, tier }, 'granted plan credits');
 
                       if (payload.type === 'subscription.active' || payload.type === 'subscription.plan_changed') {
                         try {
                           await triggerResourceUpgrade(payload.data.customer.email, tier);
                         } catch (upgradeErr) {
-                          console.error('Failed to trigger resource upgrade:', upgradeErr);
+                          logger.error({ err: upgradeErr }, 'failed to trigger resource upgrade');
                         }
                       }
                     } catch (error) {
-                      console.error('Failed to grant plan credits:', error);
+                      logger.error({ err: error }, 'failed to grant plan credits');
                     }
                   }
 
@@ -476,21 +502,21 @@ export const auth = betterAuth({
                       if (payload.data.subscription_id) return;
                       const orgId = await getOrgIdFromCustomerEmail(payload.data.customer.email);
                       if (!orgId) {
-                        console.error(`No organization found for customer: ${payload.data.customer.email}`);
+                        logger.error({ email: payload.data.customer.email }, 'no organization found for customer');
                         return;
                       }
                       const credits = payload.data.metadata?.credits
                         ? Number(payload.data.metadata.credits)
                         : payload.data.total_amount;
                       await addPurchasedCredits(orgId, credits, payload.data.payment_id);
-                      console.log(`Added ${credits} purchased credits to org ${orgId}`);
+                      logger.info({ orgId, credits }, 'added purchased credits');
                     } catch (error) {
-                      console.error('Failed to add purchased credits:', error);
+                      logger.error({ err: error }, 'failed to add purchased credits');
                     }
                   }
 
                   if (payload.type === 'subscription.cancelled') {
-                    console.log(`Subscription cancelled for customer: ${payload.data.customer.email}`);
+                    logger.info({ email: payload.data.customer.email }, 'subscription cancelled');
                   }
                 },
               }),
@@ -505,6 +531,7 @@ export const auth = betterAuth({
       create: {
         before: async (session) => {
           const organization = await getInitialOrganization(session.userId);
+          logger.debug({ userId: session.userId, activeOrganizationId: organization?.id ?? null }, 'session created');
           return {
             data: {
               ...session,
@@ -533,6 +560,8 @@ export const auth = betterAuth({
     before: createAuthMiddleware(async (ctx) => {
       if (!config.selfHosted) return;
 
+      logger.debug({ path: ctx.path }, 'self-hosted guard check');
+
       if (ctx.path === '/organization/invite-member') {
         assertInvitationsAllowed(config.selfHosted);
       }
@@ -548,6 +577,7 @@ export const auth = betterAuth({
           if (exists) {
             const userId = await getUserIdFromEmail(body.email);
             if (!userId) {
+              logger.debug({ email: body.email }, 'OTP sign-in blocked for unknown email');
               await assertRegistrationAllowed(config.selfHosted, getUserCount);
             }
           }
@@ -570,7 +600,7 @@ export const auth = betterAuth({
       
       if (isEmailOTPSend) {
         const isNewUser = await checkIfUserExists(body.email);
-        
+        logger.debug({ email: body.email, isNewUser }, 'OTP send completed');
         return ctx.json({
           success: true,
           isNewUser,
@@ -580,9 +610,10 @@ export const auth = betterAuth({
       if (isEmailOTPVerify) {
         try {
           const responseData = buildOTPVerificationResponse(ctx.context);
+          logger.debug({ email: body.email, isNewUser: responseData.isNewUser }, 'OTP verification completed');
           return ctx.json(responseData);
         } catch (error) {
-          console.error(`Failed to check if user exists in email OTP verification hook for ${body.email}:`, error);
+          logger.error({ err: error, email: body.email }, 'failed to check user in OTP verification hook');
           return ctx.json({
             success: true,
             isNewUser: false,

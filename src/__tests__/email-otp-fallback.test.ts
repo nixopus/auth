@@ -1,42 +1,16 @@
-import { describe, test, expect, beforeEach, spyOn } from 'bun:test';
+import { describe, test, expect } from 'bun:test';
 
-describe('OTP console fallback', () => {
-  test('logs OTP to console when resendApiKey is empty', () => {
-    const logs: string[] = [];
-    const spy = spyOn(console, 'log').mockImplementation((...args: any[]) => {
-      logs.push(args.join(' '));
-    });
-
-    const email = 'admin@example.com';
-    const otp = '123456';
-    const type = 'sign-in';
-
+describe('OTP fallback logic', () => {
+  test('falls back to log when resendApiKey is empty', () => {
     const resendApiKey = '';
-    if (!resendApiKey) {
-      console.log(`[Self-Hosted OTP] Code for ${email} (${type}): ${otp}`);
-    }
-
-    expect(logs.some((l) => l.includes('[Self-Hosted OTP]'))).toBe(true);
-    expect(logs.some((l) => l.includes('123456'))).toBe(true);
-    expect(logs.some((l) => l.includes('admin@example.com'))).toBe(true);
-
-    spy.mockRestore();
+    const shouldFallback = !resendApiKey;
+    expect(shouldFallback).toBe(true);
   });
 
-  test('does not log when resendApiKey is set', () => {
-    const logs: string[] = [];
-    const spy = spyOn(console, 'log').mockImplementation((...args: any[]) => {
-      logs.push(args.join(' '));
-    });
-
+  test('does not fall back when resendApiKey is set', () => {
     const resendApiKey = 're_some_key';
-    if (!resendApiKey) {
-      console.log('[Self-Hosted OTP] should not appear');
-    }
-
-    expect(logs.some((l) => l.includes('[Self-Hosted OTP]'))).toBe(false);
-
-    spy.mockRestore();
+    const shouldFallback = !resendApiKey;
+    expect(shouldFallback).toBe(false);
   });
 });
 

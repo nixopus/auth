@@ -12,6 +12,9 @@ services:
       - AUTH_SERVICE_URL=${AUTH_SERVICE_URL:-http://localhost:9090}
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-}
+      - SELF_HOSTED=${SELF_HOSTED:-false}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - LOG_LEVEL=${LOG_LEVEL:-}
     depends_on:
       postgres:
         condition: service_healthy

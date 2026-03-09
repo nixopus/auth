@@ -1,4 +1,5 @@
 import { APIError } from 'better-auth/api';
+import { logger } from '../logger.js';
 
 export type GetUserCountFn = () => Promise<number>;
 
@@ -22,11 +23,13 @@ export async function assertRegistrationAllowed(
   if (!selfHosted) return;
   const exists = await hasExistingUsers(getUserCount);
   if (exists) {
+    logger.warn('registration blocked: self-hosted instance already has a user');
     throw new APIError('FORBIDDEN', { message: 'Registration is disabled' });
   }
 }
 
 export function assertInvitationsAllowed(selfHosted: boolean): void {
   if (!selfHosted) return;
+  logger.warn('invitation blocked: disabled in self-hosted mode');
   throw new APIError('FORBIDDEN', { message: 'Invitations are disabled in self-hosted mode' });
 }

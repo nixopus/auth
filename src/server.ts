@@ -7,6 +7,7 @@ await waitForSecrets();
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { config } from './config.js';
+import { logger } from './logger.js';
 import { authHandler } from './auth/handler.js';
 import { auth, dodoPayments } from './auth/index.js';
 import { seedAdminUser } from './auth/seed-admin.js';
@@ -70,7 +71,7 @@ app.post('/api/credits/checkout', async (c) => {
 
     return c.json({ checkout_url: checkoutSession.checkout_url });
   } catch (error: any) {
-    console.error('Credit checkout error:', error);
+    logger.error({ err: error }, 'credit checkout error');
     return c.json({ error: error.message || 'Failed to create checkout' }, 500);
   }
 });
@@ -108,7 +109,7 @@ app.all('/api/auth/*', async (c) => {
         }
       }
     } catch (error) {
-      // Silently fail - don't block checkout if we can't update user name
+      logger.warn({ err: error }, 'failed to update user name before checkout');
     }
   }
   
@@ -122,5 +123,12 @@ export default {
   fetch: app.fetch,
 };
 
-console.log(`🚀 Auth service running on http://${config.host}:${config.port}`);
-console.log(`📝 Better Auth endpoint: http://${config.host}:${config.port}/api/auth`);
+logger.info({ host: config.host, port: config.port }, 'auth service started');
+logger.info({ endpoint: `http://${config.host}:${config.port}/api/auth` }, 'better auth endpoint ready');
+logger.info({
+  selfHosted: config.selfHosted,
+  emailProvider: config.resendApiKey ? 'resend' : 'console',
+  captcha: !!config.turnstileSecretKey,
+  payments: !!config.dodoPaymentsApiKey,
+  secretManager: process.env.SECRET_MANAGER_ENABLED === 'true',
+}, 'feature flags');

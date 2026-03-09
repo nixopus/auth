@@ -1,5 +1,6 @@
 import { resendService, SendEmailParams } from './resend.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import { templateManager, TEMPLATE_IDS } from './templates.js';
 
 export interface SendOTPEmailParams {
@@ -41,7 +42,7 @@ export class EmailService {
     const { email, otp, type } = params;
 
     if (!config.resendApiKey) {
-      console.log(`[Self-Hosted OTP] Code for ${email} (${type}): ${otp}`);
+      logger.info({ email, type }, 'self-hosted OTP generated (no email provider)');
       return;
     }
 
@@ -76,9 +77,9 @@ export class EmailService {
           html,
         });
       }
-      console.log(`OTP email sent successfully to ${email} (type: ${type})`);
+      logger.info({ email, type }, 'OTP email sent');
     } catch (error) {
-      console.error(`Failed to send OTP email to ${email}:`, error);
+      logger.error({ err: error, email }, 'failed to send OTP email');
       throw error;
     }
   }
@@ -98,9 +99,9 @@ export class EmailService {
         subject: 'Reset your password',
         html,
       });
-      console.log(`Password reset email sent successfully to ${email}`);
+      logger.info({ email }, 'password reset email sent');
     } catch (error) {
-      console.error(`Failed to send password reset email to ${email}:`, error);
+      logger.error({ err: error, email }, 'failed to send password reset email');
       throw error;
     }
   }
@@ -138,9 +139,9 @@ export class EmailService {
           html,
         });
       }
-      console.log(`Invitation email sent successfully to ${email} for organization ${organizationName}`);
+      logger.info({ email, organizationName }, 'invitation email sent');
     } catch (error) {
-      console.error(`Failed to send invitation email to ${email}:`, error);
+      logger.error({ err: error, email }, 'failed to send invitation email');
       throw error;
     }
   }
@@ -222,9 +223,9 @@ export class EmailService {
         ...params,
         from: params.from || this.defaultFrom,
       });
-      console.log(`Custom email sent successfully to ${Array.isArray(params.to) ? params.to.join(', ') : params.to}`);
+      logger.info({ to: params.to }, 'custom email sent');
     } catch (error) {
-      console.error(`Failed to send custom email:`, error);
+      logger.error({ err: error }, 'failed to send custom email');
       throw error;
     }
   }
