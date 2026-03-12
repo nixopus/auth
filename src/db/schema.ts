@@ -1817,3 +1817,67 @@ export const aiUsageLogsRelations = relations(aiUsageLogs, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+export const walletTransactions = pgTable(
+  "wallet_transactions",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    amountCents: integer("amount_cents").notNull(),
+    entryType: varchar("entry_type", { length: 10 }).notNull(),
+    balanceAfterCents: integer("balance_after_cents").notNull(),
+    reason: varchar("reason", { length: 255 }),
+    referenceId: varchar("reference_id", { length: 255 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_wallet_tx_org").on(table.organizationId, table.createdAt),
+    uniqueIndex("idx_wallet_tx_ref").on(table.referenceId),
+  ],
+);
+
+export const walletTransactionsRelations = relations(walletTransactions, ({ one }) => ({
+  organization: one(organization, {
+    fields: [walletTransactions.organizationId],
+    references: [organization.id],
+  }),
+}));
+
+export const autoTopupSettings = pgTable(
+  "auto_topup_settings",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    enabled: boolean("enabled").default(false).notNull(),
+    thresholdCents: integer("threshold_cents").default(200).notNull(),
+    amountCents: integer("amount_cents").default(1000).notNull(),
+    subscriptionId: varchar("subscription_id", { length: 255 }),
+    lastTriggeredAt: timestamp("last_triggered_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_auto_topup_org_unique").on(table.organizationId),
+  ],
+);
+
+export const autoTopupSettingsRelations = relations(autoTopupSettings, ({ one }) => ({
+  organization: one(organization, {
+    fields: [autoTopupSettings.organizationId],
+    references: [organization.id],
+  }),
+}));
