@@ -218,6 +218,13 @@
       "when": 1772806503751,
       "tag": "0030_flashy_nocturne",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1773329181134,
+      "tag": "0031_narrow_jetstream",
+      "breakpoints": true
     }
   ]
 }
