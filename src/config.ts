@@ -52,11 +52,11 @@ export const config = {
   dodoPaymentsEnvironment: (process.env.DODO_PAYMENTS_ENVIRONMENT || 'test_mode') as 'test_mode' | 'live_mode',
   dodoPaymentsProductId: process.env.DODO_PAYMENTS_PRODUCT_ID || '',
   dodoPaymentsProductSlug: process.env.DODO_PAYMENTS_PRODUCT_SLUG || 'pro-plan',
-  dodoCreditPacks: {
-    pack_1000: { productId: process.env.DODO_CREDITS_1K_PRODUCT_ID || '', credits: 1000 },
-    pack_5000: { productId: process.env.DODO_CREDITS_5K_PRODUCT_ID || '', credits: 5000 },
-    pack_20000: { productId: process.env.DODO_CREDITS_20K_PRODUCT_ID || '', credits: 20000 },
-  },
+  dodoCreditProductId: process.env.DODO_CREDITS_PRODUCT_ID || '',
+  dodoCreditMinDollars: parseInt(process.env.DODO_CREDITS_MIN_DOLLARS || '1', 10),
+  dodoCreditMaxDollars: parseInt(process.env.DODO_CREDITS_MAX_DOLLARS || '1000', 10),
+  dodoAutoTopupProductId: process.env.DODO_AUTO_TOPUP_PRODUCT_ID || '',
+  internalCronSecret: process.env.INTERNAL_CRON_SECRET || '',
   nixopusApiUrl: process.env.NIXOPUS_API_URL || 'http://localhost:8080',
 
   // Cloudflare Turnstile (captcha)
