@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
@@ -12,6 +13,21 @@ import {
   verifyAndCreditPendingPayments,
   runAutoTopupSweep,
 } from '../auth/billing.js';
+
+function getRequestOrigin(c: Context): string {
+  const origin = c.req.header('Origin') || c.req.header('Referer');
+  if (origin) {
+    const normalized = origin.replace(/\/+$/, '');
+    try {
+      const parsed = new URL(normalized.startsWith('http') ? normalized : `https://${normalized}`);
+      const candidate = parsed.origin;
+      if (config.corsAllowedOrigins.includes(candidate)) {
+        return candidate;
+      }
+    } catch {}
+  }
+  return config.corsAllowedOrigins[0];
+}
 
 export const billingRoutes = new Hono();
 
@@ -39,6 +55,7 @@ billingRoutes.post('/checkout', async (c) => {
 
     const amountCents = amountDollars * 100;
 
+    const returnOrigin = getRequestOrigin(c);
     const checkoutSession = await dodoPayments.checkoutSessions.create({
       product_cart: [{ product_id: config.dodoCreditProductId, quantity: amountDollars }],
       customer: {
@@ -46,7 +63,7 @@ billingRoutes.post('/checkout', async (c) => {
         name: session.user.name || session.user.email.split('@')[0],
       },
       metadata: { amount_cents: String(amountCents) },
-      return_url: `${config.corsAllowedOrigins[0]}/billing?checkout=success`,
+      return_url: `${returnOrigin}/billing?checkout=success`,
     });
 
     return c.json({ checkout_url: checkoutSession.checkout_url });
@@ -181,10 +198,11 @@ autoTopupRoutes.post('/setup', async (c) => {
       ? { customer_id: customerId }
       : { email, name: session.user.name || email.split('@')[0] };
 
+    const returnOrigin = getRequestOrigin(c);
     const checkoutSession = await dodoPayments.checkoutSessions.create({
       product_cart: [{ product_id: config.dodoAutoTopupProductId, quantity: 1 }],
       customer: customerRef as any,
-      return_url: `${config.corsAllowedOrigins[0]}/billing?auto_topup=success`,
+      return_url: `${returnOrigin}/billing?auto_topup=success`,
       subscription_data: {
         on_demand: {
           mandate_only: true,
