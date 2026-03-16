@@ -4,6 +4,10 @@ import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
 import { config } from '../config.js';
 import { logger } from '../logger.js';
+import { creditInternalWallet, creditDodoWelcomeBonus } from './billing.js';
+
+const WELCOME_BONUS_CENTS = 500;
+const DODO_CREDIT_DELAY_MS = 3000;
 
 async function createSSHKeyEntry(organizationId: string, userEmail: string): Promise<void> {
   const authMethod = config.sshPassword ? 'password' : 'key';
@@ -79,6 +83,24 @@ export async function setupNewUser(user: { id: string; email: string; name: stri
     });
 
     logger.info({ orgId, orgName, email: user.email }, 'created default organization');
+
+    const credited = await creditInternalWallet(
+      orgId,
+      WELCOME_BONUS_CENTS,
+      'Welcome bonus - $5 promotional balance',
+      `welcome_bonus_${user.id}`,
+    );
+    if (credited) {
+      logger.info({ orgId, userId: user.id, amountCents: WELCOME_BONUS_CENTS }, 'welcome bonus credited');
+    }
+
+    setTimeout(() => {
+      creditDodoWelcomeBonus(
+        user.email,
+        WELCOME_BONUS_CENTS,
+        `welcome_bonus_${user.id}`,
+      ).catch(() => {});
+    }, DODO_CREDIT_DELAY_MS);
 
     await loadSSHCredentials(user.id, orgId, user.email);
   } catch (error) {

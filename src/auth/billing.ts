@@ -100,6 +100,30 @@ export async function addPurchasedCredits(email: string, amountCents: number, re
   await creditInternalWallet(orgId, amountCents, 'Credit top-up', `topup_${referenceId}`);
 }
 
+export async function creditDodoWelcomeBonus(
+  email: string,
+  amountCents: number,
+  idempotencyKey: string,
+): Promise<boolean> {
+  if (!dodoPayments) return false;
+  const customerId = await getDodoCustomerId(email);
+  if (!customerId) return false;
+  try {
+    await dodoPayments.customers.wallets.ledgerEntries.create(customerId, {
+      amount: amountCents,
+      currency: 'USD',
+      entry_type: 'credit',
+      reason: 'Welcome bonus - $5 promotional balance',
+      idempotency_key: idempotencyKey,
+    });
+    logger.info({ email, customerId, amountCents }, 'Dodo welcome bonus credited');
+    return true;
+  } catch (err) {
+    logger.warn({ err, email }, 'Dodo welcome bonus credit failed');
+    return false;
+  }
+}
+
 export async function triggerResourceUpgrade(email: string, planTier: string): Promise<void> {
   const resources = PLAN_RESOURCE_MAP[planTier] ?? PLAN_RESOURCE_MAP.free;
 
