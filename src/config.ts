@@ -57,7 +57,7 @@ export const config = {
   dodoCreditMaxDollars: parseInt(process.env.DODO_CREDITS_MAX_DOLLARS || '1000', 10),
   dodoAutoTopupProductId: process.env.DODO_AUTO_TOPUP_PRODUCT_ID || '',
   internalCronSecret: process.env.INTERNAL_CRON_SECRET || '',
-  nixopusApiUrl: process.env.NIXOPUS_API_URL || 'http://localhost:8080',
+  nixopusApiUrl: process.env.API_URL || 'http://localhost:8080',
 
   // Cloudflare Turnstile (captcha)
   turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || '',

@@ -13,6 +13,7 @@ import {
   verifyAndCreditPendingPayments,
   runAutoTopupSweep,
 } from '../auth/billing.js';
+import { getMachineStatus } from '../auth/machine-billing.js';
 
 function getRequestOrigin(c: Context): string {
   const origin = c.req.header('Origin') || c.req.header('Referer');
@@ -361,5 +362,30 @@ billingInternalRoutes.post('/auto-topup-sweep', async (c) => {
   } catch (error: any) {
     logger.error({ err: error }, 'auto-topup sweep error');
     return c.json({ error: error.message || 'Sweep failed' }, 500);
+  }
+});
+
+billingInternalRoutes.get('/machine-status', async (c) => {
+  try {
+    const secret = config.internalCronSecret;
+    if (!secret) {
+      return c.json({ error: 'Cron secret not configured' }, 503);
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader !== `Bearer ${secret}`) {
+      return c.json({ error: 'Unauthorized' }, 401);
+    }
+
+    const orgId = new URL(c.req.url).searchParams.get('org_id');
+    if (!orgId) {
+      return c.json({ error: 'org_id is required' }, 400);
+    }
+
+    const status = await getMachineStatus(orgId);
+    return c.json(status);
+  } catch (error: any) {
+    logger.error({ err: error }, 'machine status error');
+    return c.json({ error: error.message || 'Failed to get machine status' }, 500);
   }
 });

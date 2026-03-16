@@ -225,6 +225,13 @@
       "when": 1773329181134,
       "tag": "0031_narrow_jetstream",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1773652353959,
+      "tag": "0032_charming_wolfpack",
+      "breakpoints": true
     }
   ]
 }

@@ -15,6 +15,7 @@ import { seedAdminUser } from './auth/seed-admin.js';
 import { db } from './db/index.js';
 import * as schema from './db/schema.js';
 import { billingRoutes, autoTopupRoutes, billingInternalRoutes } from './routes/billing.js';
+import { runAutoTopupSweep } from './auth/billing.js';
 
 await seedAdminUser();
 
@@ -95,3 +96,24 @@ logger.info({
   payments: !!config.dodoPaymentsApiKey,
   secretManager: process.env.SECRET_MANAGER_ENABLED === 'true',
 }, 'feature flags');
+
+const AUTO_TOPUP_INTERVAL_MS = 60 * 60 * 1000;
+const INITIAL_DELAY_MS = 30 * 1000;
+
+async function autoTopupTick(): Promise<void> {
+  try {
+    const result = await runAutoTopupSweep();
+    if (result.processed > 0) {
+      logger.info(result, 'auto top-up sweep completed');
+    }
+  } catch (err) {
+    logger.error({ err }, 'auto top-up sweep failed');
+  }
+}
+
+setTimeout(() => {
+  autoTopupTick();
+  setInterval(autoTopupTick, AUTO_TOPUP_INTERVAL_MS);
+}, INITIAL_DELAY_MS);
+
+logger.info({ intervalMs: AUTO_TOPUP_INTERVAL_MS }, 'auto top-up scheduler started');

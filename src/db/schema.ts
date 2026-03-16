@@ -1881,3 +1881,78 @@ export const autoTopupSettingsRelations = relations(autoTopupSettings, ({ one })
     references: [organization.id],
   }),
 }));
+
+export const machineBillingStatusEnum = pgEnum("machine_billing_status", [
+  "active",
+  "grace_period",
+  "suspended",
+  "cancelled",
+]);
+
+export const machinePlans = pgTable("machine_plans", {
+  id: uuid("id")
+    .default(sql`gen_random_uuid()`)
+    .primaryKey(),
+  tier: varchar("tier", { length: 50 }).notNull().unique(),
+  name: varchar("name", { length: 100 }).notNull(),
+  ramMb: integer("ram_mb").notNull(),
+  vcpu: integer("vcpu").notNull(),
+  storageMb: integer("storage_mb").notNull(),
+  monthlyCostCents: integer("monthly_cost_cents").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const orgMachineBilling = pgTable(
+  "org_machine_billing",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    sshKeyId: uuid("ssh_key_id")
+      .references(() => sshKeys.id, { onDelete: "set null" }),
+    machinePlanId: uuid("machine_plan_id")
+      .notNull()
+      .references(() => machinePlans.id),
+    status: machineBillingStatusEnum("status").default("active").notNull(),
+    currentPeriodStart: timestamp("current_period_start", { withTimezone: true }).notNull(),
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }).notNull(),
+    graceDeadline: timestamp("grace_deadline", { withTimezone: true }),
+    lastChargedAt: timestamp("last_charged_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_org_machine_billing_org").on(table.organizationId),
+    index("idx_org_machine_billing_status").on(table.status),
+  ],
+);
+
+export const machinePlansRelations = relations(machinePlans, ({ many }) => ({
+  orgMachineBillings: many(orgMachineBilling),
+}));
+
+export const orgMachineBillingRelations = relations(orgMachineBilling, ({ one }) => ({
+  organization: one(organization, {
+    fields: [orgMachineBilling.organizationId],
+    references: [organization.id],
+  }),
+  sshKey: one(sshKeys, {
+    fields: [orgMachineBilling.sshKeyId],
+    references: [sshKeys.id],
+  }),
+  machinePlan: one(machinePlans, {
+    fields: [orgMachineBilling.machinePlanId],
+    references: [machinePlans.id],
+  }),
+}));
