@@ -84,14 +84,20 @@ export async function setupNewUser(user: { id: string; email: string; name: stri
 
     logger.info({ orgId, orgName, email: user.email }, 'created default organization');
 
-    const credited = await creditInternalWallet(
-      orgId,
-      WELCOME_BONUS_CENTS,
-      'Welcome bonus - $5 promotional balance',
-      `welcome_bonus_${user.id}`,
-    );
-    if (credited) {
-      logger.info({ orgId, userId: user.id, amountCents: WELCOME_BONUS_CENTS }, 'welcome bonus credited');
+    try {
+      const credited = await creditInternalWallet(
+        orgId,
+        WELCOME_BONUS_CENTS,
+        'Welcome bonus - $5 promotional balance',
+        `welcome_bonus_${user.id}`,
+      );
+      if (credited) {
+        logger.info({ orgId, userId: user.id, amountCents: WELCOME_BONUS_CENTS }, 'welcome bonus credited');
+      } else {
+        logger.warn({ orgId, userId: user.id }, 'welcome bonus skipped (duplicate or failed)');
+      }
+    } catch (creditErr) {
+      logger.error({ err: creditErr, orgId, userId: user.id }, 'welcome bonus credit failed');
     }
 
     setTimeout(() => {
@@ -99,7 +105,9 @@ export async function setupNewUser(user: { id: string; email: string; name: stri
         user.email,
         WELCOME_BONUS_CENTS,
         `welcome_bonus_${user.id}`,
-      ).catch(() => {});
+      ).catch((err) => {
+        logger.warn({ err, email: user.email }, 'Dodo welcome bonus failed');
+      });
     }, DODO_CREDIT_DELAY_MS);
 
     await loadSSHCredentials(user.id, orgId, user.email);
