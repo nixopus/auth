@@ -150,22 +150,101 @@ export class EmailService {
    * Fallback HTML for OTP emails (used when templates are not available)
    */
   private getOTPHTML(type: 'sign-in' | 'email-verification' | 'forget-password' | 'change-email', otp: string): string {
-    const isPasswordReset = type === 'forget-password';
-    const heading = isPasswordReset ? 'Your password reset code is:' : 'Your verification code is:';
-    const footerText = isPasswordReset
-      ? 'If you didn\'t request a password reset, please ignore this email.'
-      : 'If you didn\'t request this code, please ignore this email.';
+    let heading: string;
+    let description: string;
+    let footerText: string;
 
-    return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>${heading}</h2>
-        <div style="background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
-          ${otp}
-        </div>
-        <p>This code will expire in 5 minutes.</p>
-        <p>${footerText}</p>
-      </div>
-    `;
+    switch (type) {
+      case 'forget-password':
+        heading = 'Reset your password';
+        description = 'Use this code to reset your password.';
+        footerText = 'If you didn\'t request a password reset, ignore this email.';
+        break;
+      case 'email-verification':
+        heading = 'Verify your email';
+        description = 'Use this code to verify your email address.';
+        footerText = 'If you didn\'t request this verification, ignore this email.';
+        break;
+      case 'change-email':
+        heading = 'Change your email';
+        description = 'Use this code to confirm your new email address.';
+        footerText = 'If you didn\'t request this change, ignore this email.';
+        break;
+      default:
+        heading = 'Sign in to Nixopus';
+        description = 'Use this code to sign in.';
+        footerText = 'If you didn\'t request this login, ignore this email.';
+        break;
+    }
+
+    return `<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>${heading}</title>
+    <style>
+      body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+      table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+      img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+      body { margin: 0; padding: 0; width: 100% !important; }
+    </style>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #ffffff; font-family: -apple-system, 'SF Pro Display', 'Inter', 'Helvetica Neue', Arial, sans-serif;">
+    <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">Your Login OTP for Nixopus.</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff;">
+      <tr>
+        <td align="center" style="padding: 48px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #111111; border-radius: 12px; border: 1px solid #1e1e1e; overflow: hidden;">
+            <tr>
+              <td align="center" style="padding: 44px 40px 28px;">
+                <img src="https://kfsemevdxvqqgxphawae.supabase.co/storage/v1/object/public/brand-material/logo/Nixopus%20Logo%20White%20(Black%20Theme).png" alt="Nixopus" width="140" style="display: block;" />
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding: 0 40px;">
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #f2f2f2; letter-spacing: -0.4px; line-height: 1.3;">${heading}</h1>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding: 20px 40px 0;">
+                <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #858585; text-align: center;">${description}</p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding: 32px 40px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a; border-radius: 8px; border: 1px solid #1e1e1e;">
+                  <tr>
+                    <td style="padding: 20px 40px;">
+                      <p style="margin: 0; font-size: 32px; font-weight: 700; color: #f2f2f2; letter-spacing: 8px; font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; text-align: center;">${otp}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 40px 32px;">
+                <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #525252; text-align: center;">This code expires in 10 minutes.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 0 40px;">
+                <div style="height: 1px; background-color: #1e1e1e;"></div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 24px 40px 32px;">
+                <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #3d3d3d;">${footerText}</p>
+                <p style="margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: #3d3d3d;">Nixopus · Autonomous cloud for modern builders</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
   }
 
   /**
