@@ -119,6 +119,7 @@ export const auth = betterAuth({
       loginPage: '/sign-in',
       consentPage: '/consent',
       m2mAccessTokenExpiresIn: 3600,
+      validAudiences: config.m2mAudiences.length > 0 ? config.m2mAudiences : undefined,
       customAccessTokenClaims: ({ referenceId }) => ({
         'https://nixopus.com/org': referenceId,
       }),

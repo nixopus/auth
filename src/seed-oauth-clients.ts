@@ -22,10 +22,10 @@ console.log(`  client_id:     ${nixopusApi.client_id}`);
 console.log(`  client_secret: ${nixopusApi.client_secret}`);
 console.log();
 
-const octodelAgent = await auth.api.adminCreateOAuthClient({
+const agent = await auth.api.adminCreateOAuthClient({
   headers: new Headers(),
   body: {
-    client_name: 'octodel-agent',
+    client_name: 'agent',
     redirect_uris: ['https://localhost'],
     grant_types: ['client_credentials'],
     token_endpoint_auth_method: 'client_secret_post',
@@ -34,8 +34,8 @@ const octodelAgent = await auth.api.adminCreateOAuthClient({
   },
 });
 
-console.log('=== octodel-agent ===');
-console.log(`  client_id:     ${octodelAgent.client_id}`);
-console.log(`  client_secret: ${octodelAgent.client_secret}`);
+console.log('=== agent ===');
+console.log(`  client_id:     ${agent.client_id}`);
+console.log(`  client_secret: ${agent.client_secret}`);
 
 process.exit(0);

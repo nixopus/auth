@@ -65,6 +65,10 @@ export const config = {
   // Passkey (WebAuthn) configuration
   passkeyRpId: process.env.PASSKEY_RP_ID || new URL(process.env.AUTH_SERVICE_URL || 'http://localhost').hostname,
 
+  m2mAudiences: process.env.M2M_AUDIENCES
+    ? process.env.M2M_AUDIENCES.split(',').map((a) => a.trim())
+    : [],
+
   // SSH configuration (for installer-generated SSH keys)
   sshHost: process.env.SSH_HOST || '',
   sshPort: parseInt(process.env.SSH_PORT || '22', 10),
