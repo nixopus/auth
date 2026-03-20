@@ -1,7 +1,9 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { emailOTP, organization, deviceAuthorization, bearer, apiKey, captcha } from 'better-auth/plugins';
+import { emailOTP, organization, deviceAuthorization, bearer, captcha, jwt } from 'better-auth/plugins';
+import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
+import { oauthProvider } from '@better-auth/oauth-provider';
 import {
   dodopayments,
   checkout,
@@ -34,6 +36,7 @@ export const auth = betterAuth({
   basePath: '/api/auth',
   secret: config.betterAuthSecret,
   trustedOrigins: config.corsAllowedOrigins,
+  disabledPaths: ['/token'],
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url, token }) => {
@@ -111,6 +114,15 @@ export const auth = betterAuth({
       rpName: 'Nixopus',
       origin: config.corsAllowedOrigins,
     }),
+    jwt({ disableSettingJwtHeader: true }),
+    oauthProvider({
+      loginPage: '/sign-in',
+      consentPage: '/consent',
+      m2mAccessTokenExpiresIn: 3600,
+      customAccessTokenClaims: ({ referenceId }) => ({
+        'https://nixopus.com/org': referenceId,
+      }),
+    }),
     ...(config.dodoPaymentsApiKey && dodoPayments
       ? [
           dodopayments({
@@ -164,6 +176,7 @@ export const auth = betterAuth({
   session: {
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
+    storeSessionInDatabase: true,
   },
   hooks: {
     before: beforeHook,

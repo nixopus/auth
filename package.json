@@ -12,6 +12,7 @@
     "db:migrate": "bunx drizzle-kit migrate",
     "db:push": "bunx drizzle-kit push",
     "auth:generate": "bunx @better-auth/cli generate",
+    "seed:oauth": "bun run src/seed-oauth-clients.ts",
     "test": "bun test"
   },
   "keywords": [],
@@ -21,9 +22,11 @@
     "bun": ">=1.0.0"
   },
   "dependencies": {
-    "@better-auth/passkey": "1.4.18",
-    "@dodopayments/better-auth": "^1.4.2",
-    "better-auth": "1.4.17",
+    "@better-auth/api-key": "^1.5.5",
+    "@better-auth/oauth-provider": "^1.5.5",
+    "@better-auth/passkey": "^1.5.5",
+    "@dodopayments/better-auth": "^1.4.3",
+    "better-auth": "^1.5.5",
     "dodopayments": "^2.17.2",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.0.0",

@@ -11,6 +11,7 @@ import { config } from './config.js';
 import { logger } from './logger.js';
 import { authHandler } from './auth/handler.js';
 import { auth } from './auth/index.js';
+import { oauthProviderAuthServerMetadata, oauthProviderOpenIdConfigMetadata } from '@better-auth/oauth-provider';
 import { seedAdminUser } from './auth/seed-admin.js';
 import { db } from './db/index.js';
 import * as schema from './db/schema.js';
@@ -38,6 +39,14 @@ app.use('*', cors({
 
 app.get('/health', (c) => {
   return c.json({ status: 'ok', service: 'auth' });
+});
+
+app.get('/.well-known/oauth-authorization-server', (c) => {
+  return c.json(oauthProviderAuthServerMetadata(auth));
+});
+
+app.get('/.well-known/openid-configuration', (c) => {
+  return c.json(oauthProviderOpenIdConfigMetadata(auth));
 });
 
 app.route('/api/credits', billingRoutes);

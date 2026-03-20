@@ -232,6 +232,20 @@
       "when": 1773652353959,
       "tag": "0032_charming_wolfpack",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1774267200000,
+      "tag": "0033_add_cancelled_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1774023009044,
+      "tag": "0034_robust_tinkerer",
+      "breakpoints": true
     }
   ]
 }
