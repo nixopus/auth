@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { emailOTP, organization, deviceAuthorization, bearer, captcha, jwt } from 'better-auth/plugins';
+import { emailOTP, organization, deviceAuthorization, bearer, captcha, jwt, testUtils } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
 import { oauthProvider } from '@better-auth/oauth-provider';
@@ -58,6 +58,7 @@ export const auth = betterAuth({
     useSecureCookies: config.secureCookies,
   },
   plugins: [
+    ...(config.isTest ? [testUtils()] : []),
     emailOTP({
       sendVerificationOTP,
       otpLength: 6,

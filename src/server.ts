@@ -53,6 +53,44 @@ app.route('/api/credits', billingRoutes);
 app.route('/api/credits/auto-topup', autoTopupRoutes);
 app.route('/api/internal', billingInternalRoutes);
 
+if (config.isTest) {
+  const ctx = await auth.$context;
+  const test = (ctx as any).test;
+
+  app.post('/api/test/save-user', async (c) => {
+    const body = await c.req.json();
+    const user = test.createUser(body);
+    const saved = await test.saveUser(user);
+    return c.json(saved);
+  });
+
+  app.post('/api/test/login', async (c) => {
+    const { userId } = await c.req.json();
+    const result = await test.login({ userId });
+    return c.json({
+      session: result.session,
+      user: result.user,
+      token: result.token,
+      cookies: result.cookies,
+    });
+  });
+
+  app.post('/api/test/save-org', async (c) => {
+    const body = await c.req.json();
+    const org = test.createOrganization(body);
+    const saved = await test.saveOrganization(org);
+    return c.json(saved);
+  });
+
+  app.post('/api/test/add-member', async (c) => {
+    const body = await c.req.json();
+    const member = await test.addMember(body);
+    return c.json(member);
+  });
+
+  logger.info('test utils routes enabled at /api/test/*');
+}
+
 app.all('/api/auth/*', async (c) => {
   const url = new URL(c.req.url);
   const isCheckoutRequest = url.pathname.includes('/dodopayments/checkout');
@@ -104,6 +142,7 @@ logger.info({
   captcha: !!config.turnstileSecretKey,
   payments: !!config.dodoPaymentsApiKey,
   secretManager: process.env.SECRET_MANAGER_ENABLED === 'true',
+  testUtils: config.isTest,
 }, 'feature flags');
 
 const AUTO_TOPUP_INTERVAL_MS = 60 * 60 * 1000;

@@ -16,6 +16,7 @@ export const config = {
   // Environment
   nodeEnv: process.env.NODE_ENV || 'development',
   isProduction: process.env.NODE_ENV === 'production',
+  isTest: process.env.NODE_ENV === 'test',
   isDevelopment: process.env.NODE_ENV !== 'production',
   selfHosted: process.env.SELF_HOSTED === 'true',
   adminEmail: process.env.ADMIN_EMAIL || '',
