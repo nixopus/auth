@@ -11,7 +11,17 @@ const DODO_CREDIT_DELAY_MS = 3000;
 const DEFAULT_MACHINE_TIER = 'machine_1';
 
 async function createSSHKeyEntry(organizationId: string, userEmail: string): Promise<string> {
-  const authMethod = config.sshPassword ? 'password' : 'key';
+  const hasValidKey = config.sshPrivateKey && config.sshPrivateKey.startsWith('-----BEGIN');
+  const hasPassword = !!config.sshPassword;
+
+  if (!hasValidKey && !hasPassword) {
+    throw new Error(
+      'Cannot create SSH key entry: no valid private key (must be PEM format starting with -----BEGIN) and no password configured. ' +
+      'Check that SSH_PRIVATE_KEY file is readable by the container user.',
+    );
+  }
+
+  const authMethod = hasPassword && !hasValidKey ? 'password' : 'key';
   const sshKeyId = randomUUID();
 
   await db.insert(schema.sshKeys).values({
@@ -22,7 +32,7 @@ async function createSSHKeyEntry(organizationId: string, userEmail: string): Pro
     host: config.sshHost,
     user: config.sshUser,
     port: config.sshPort,
-    privateKeyEncrypted: config.sshPrivateKey,
+    privateKeyEncrypted: hasValidKey ? config.sshPrivateKey : null,
     passwordEncrypted: config.sshPassword || null,
     authMethod,
     isActive: true,
@@ -72,11 +82,29 @@ async function createMachineBillingEntry(organizationId: string, sshKeyId: strin
 async function loadSSHCredentials(userId: string, organizationId: string, userEmail: string): Promise<void> {
   if (!config.selfHosted) return;
 
-  if (config.sshHost && config.sshPrivateKey) {
+  const hasHost = !!config.sshHost;
+  const hasKey = config.sshPrivateKey && config.sshPrivateKey.startsWith('-----BEGIN');
+  const hasPassword = !!config.sshPassword;
+
+  if (!hasHost) {
+    logger.warn({ userEmail }, 'SSH_HOST not configured, skipping SSH key setup');
+    return;
+  }
+
+  if (!hasKey && !hasPassword) {
+    logger.error(
+      { userEmail, sshHost: config.sshHost },
+      'SSH_PRIVATE_KEY is missing or unreadable (not a valid PEM key) and no SSH_PASSWORD set. ' +
+      'The SSH key file may not be readable by the container user. Check file permissions.',
+    );
+    return;
+  }
+
+  try {
     const sshKeyId = await createSSHKeyEntry(organizationId, userEmail);
     await createMachineBillingEntry(organizationId, sshKeyId);
-  } else {
-    logger.warn({ userEmail }, 'SSH credentials not available in environment');
+  } catch (err) {
+    logger.error({ err, userEmail, organizationId }, 'failed to create SSH key entry during self-hosted setup');
   }
 }
 

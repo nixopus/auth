@@ -1,15 +1,21 @@
 import { existsSync, readFileSync } from 'fs';
 
 function resolveSSHPrivateKey(value: string): string {
-  if (!value || value.startsWith('-----BEGIN')) return value;
+  if (!value) return value;
+  if (value.startsWith('-----BEGIN')) return value;
   try {
     if (existsSync(value)) {
-      return readFileSync(value, 'utf8').trim();
+      const content = readFileSync(value, 'utf8').trim();
+      if (content.startsWith('-----BEGIN')) return content;
+      console.error(`[nixopus-auth] SSH_PRIVATE_KEY file "${value}" does not contain a valid PEM key`);
+      return '';
     }
-  } catch {
-    // ignore
+  } catch (err: any) {
+    console.error(`[nixopus-auth] Failed to read SSH_PRIVATE_KEY file "${value}": ${err?.message || err}. Ensure the file is readable by the container user.`);
+    return '';
   }
-  return value;
+  console.error(`[nixopus-auth] SSH_PRIVATE_KEY file "${value}" does not exist`);
+  return '';
 }
 
 export const config = {
