@@ -1,6 +1,7 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { emailOTP, organization, role, deviceAuthorization, bearer, captcha, jwt, testUtils } from 'better-auth/plugins';
+import { defaultRoles } from 'better-auth/plugins/organization/access';
 import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
 import { oauthProvider } from '@better-auth/oauth-provider';
@@ -82,6 +83,7 @@ export const auth = betterAuth({
       : []),
     organization({
       roles: {
+        ...defaultRoles,
         viewer: role({
           organization: [],
           member: [],
