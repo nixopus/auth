@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { emailOTP, organization, deviceAuthorization, bearer, captcha, jwt, testUtils } from 'better-auth/plugins';
+import { emailOTP, organization, role, deviceAuthorization, bearer, captcha, jwt, testUtils } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
 import { oauthProvider } from '@better-auth/oauth-provider';
@@ -32,7 +32,7 @@ export const auth = betterAuth({
     provider: 'pg',
     schema,
   }),
-  baseURL: config.betterAuthUrl,
+  baseURL: config.corsAllowedOrigins[0] || config.betterAuthUrl,
   basePath: '/api/auth',
   secret: config.betterAuthSecret,
   trustedOrigins: config.corsAllowedOrigins,
@@ -81,8 +81,18 @@ export const auth = betterAuth({
         ]
       : []),
     organization({
+      roles: {
+        viewer: role({
+          organization: [],
+          member: [],
+          invitation: [],
+          team: [],
+          ac: [],
+        }),
+      },
       async sendInvitationEmail(data) {
-        const invitationUrl = `${config.betterAuthUrl}/auth/organization-invite?token=${data.id}`;
+        const frontendUrl = config.corsAllowedOrigins[0] || config.betterAuthUrl;
+        const invitationUrl = `${frontendUrl}/auth/organization-invite?token=${data.id}`;
         await emailService.sendInvitationEmail({
           email: data.email,
           organizationName: data.organization.name,
