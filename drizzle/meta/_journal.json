@@ -253,6 +253,13 @@
       "when": 1774241233050,
       "tag": "0035_tranquil_professor_monster",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1774483200000,
+      "tag": "0037_add_mcp_servers",
+      "breakpoints": true
     }
   ]
 }
