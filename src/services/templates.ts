@@ -267,7 +267,7 @@ export class TemplateManager {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 560px; background-color: #111111; border-radius: 12px; border: 1px solid #1e1e1e; overflow: hidden;">
             <tr>
               <td align="center" style="padding: 44px 40px 28px;">
-                <img src="https://kfsemevdxvqqgxphawae.supabase.co/storage/v1/object/public/brand-material/logo/Nixopus%20Logo%20White%20(Black%20Theme).png" alt="Nixopus" width="140" style="display: block;" />
+                <img src="https://nixopus.com/images/Nixopus_Logo_White_Black_Theme.png" alt="Nixopus" width="140" style="display: block;" />
               </td>
             </tr>
             <tr>
