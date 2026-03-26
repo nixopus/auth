@@ -796,6 +796,9 @@ export const smtpConfigs = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -806,6 +809,7 @@ export const smtpConfigs = pgTable(
   (table) => [
     index("idx_smtp_configs_user_id").on(table.userId),
     index("idx_smtp_configs_is_active").on(table.isActive),
+    index("idx_smtp_configs_organization_id").on(table.organizationId),
   ],
 );
 
@@ -1328,6 +1332,10 @@ export const smtpConfigsRelations = relations(smtpConfigs, ({ one }) => ({
   user: one(user, {
     fields: [smtpConfigs.userId],
     references: [user.id],
+  }),
+  organization: one(organization, {
+    fields: [smtpConfigs.organizationId],
+    references: [organization.id],
   }),
 }));
 
