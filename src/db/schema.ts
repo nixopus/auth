@@ -7,6 +7,8 @@ import {
   uuid,
   index,
   uniqueIndex,
+  unique,
+  foreignKey,
   varchar,
   integer,
   jsonb,
@@ -501,6 +503,7 @@ export const applications = pgTable(
     labels: text("labels").array(),
     isLiveDeployment: boolean("is_live_deployment").default(false).notNull(),
     source: varchar("source", { length: 20 }).default("github").notNull(),
+    routingStrategy: varchar("routing_strategy", { length: 20 }).notNull().default("single"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -550,6 +553,8 @@ export const applicationDeployment = pgTable(
     containerStatus: text("container_status"),
     imageS3Key: text("image_s3_key").default(""),
     imageSize: bigint("image_size", { mode: "number" }).default(0),
+    serverId: uuid("server_id").references(() => sshKeys.id),
+    parentDeploymentId: uuid("parent_deployment_id"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -561,6 +566,11 @@ export const applicationDeployment = pgTable(
     index("idx_application_deployment_application_id").on(
       table.applicationId,
     ),
+    foreignKey({
+      columns: [table.parentDeploymentId],
+      foreignColumns: [table.id],
+      name: "application_deployment_parent_fk",
+    }).onDelete("set null"),
   ],
 );
 
@@ -1114,6 +1124,7 @@ export const userRelations = relations(user, ({ one, many }) => ({
   oauthRefreshTokens: many(oauthRefreshToken),
   oauthAccessTokens: many(oauthAccessToken),
   oauthConsents: many(oauthConsent),
+  machineBackups: many(machineBackups),
 }));
 
 export const sessionRelations = relations(session, ({ one, many }) => ({
@@ -1147,6 +1158,7 @@ export const organizationRelations = relations(organization, ({ many }) => ({
   creditAccounts: many(creditAccounts),
   creditTransactions: many(creditTransactions),
   aiUsageLogs: many(aiUsageLogs),
+  machineBackups: many(machineBackups),
 }));
 
 export const memberRelations = relations(member, ({ one }) => ({
@@ -1213,6 +1225,7 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
     references: [applicationContext.applicationId],
   }),
   applicationFileChunks: many(applicationFileChunks),
+  servers: many(applicationServers),
 }));
 
 export const applicationStatusRelations = relations(
@@ -1224,6 +1237,7 @@ export const applicationStatusRelations = relations(
     }),
   }),
 );
+
 
 export const applicationDeploymentRelations = relations(
   applicationDeployment,
@@ -1237,6 +1251,14 @@ export const applicationDeploymentRelations = relations(
       references: [applicationDeploymentStatus.applicationDeploymentId],
     }),
     logs: many(applicationLogs),
+    parent: one(applicationDeployment, {
+      fields: [applicationDeployment.parentDeploymentId],
+      references: [applicationDeployment.id],
+      relationName: "deployment_parent",
+    }),
+    children: many(applicationDeployment, {
+      relationName: "deployment_parent",
+    }),
   }),
 );
 
@@ -1796,6 +1818,7 @@ export const sshKeys = pgTable(
     fingerprint: varchar("fingerprint", { length: 255 }),
     authMethod: varchar("auth_method", { length: 20 }).default("key").notNull(),
     isActive: boolean("is_active").default(true).notNull(),
+    isDefault: boolean("is_default").default(false).notNull(),
     lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -1812,13 +1835,56 @@ export const sshKeys = pgTable(
     index("idx_ssh_keys_fingerprint").on(table.fingerprint),
     index("idx_ssh_keys_deleted_at").on(table.deletedAt),
     index("idx_ssh_keys_auth_method").on(table.authMethod),
+    uniqueIndex("ssh_keys_one_default_per_org")
+      .on(table.organizationId)
+      .where(sql`is_default = true AND deleted_at IS NULL`),
   ],
 );
 
-export const sshKeysRelations = relations(sshKeys, ({ one }) => ({
+export const applicationServers = pgTable(
+  "application_servers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    serverId: uuid("server_id")
+      .notNull()
+      .references(() => sshKeys.id, { onDelete: "restrict" }),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("application_servers_one_primary_per_app")
+      .on(table.applicationId)
+      .where(sql`is_primary = true`),
+    unique("application_servers_unique_app_server").on(
+      table.applicationId,
+      table.serverId,
+    ),
+    index("idx_application_servers_application_id").on(table.applicationId),
+    index("idx_application_servers_server_id").on(table.serverId),
+  ],
+);
+
+export const sshKeysRelations = relations(sshKeys, ({ one, many }) => ({
   organization: one(organization, {
     fields: [sshKeys.organizationId],
     references: [organization.id],
+  }),
+  applicationServers: many(applicationServers),
+}));
+
+export const applicationServersRelations = relations(applicationServers, ({ one }) => ({
+  application: one(applications, {
+    fields: [applicationServers.applicationId],
+    references: [applications.id],
+  }),
+  server: one(sshKeys, {
+    fields: [applicationServers.serverId],
+    references: [sshKeys.id],
   }),
 }));
 
@@ -2141,5 +2207,68 @@ export const orgMachineBillingRelations = relations(orgMachineBilling, ({ one })
   machinePlan: one(machinePlans, {
     fields: [orgMachineBilling.machinePlanId],
     references: [machinePlans.id],
+  }),
+}));
+
+export const machineBackupStatusEnum = pgEnum("machine_backup_status", [
+  "pending",
+  "in_progress",
+  "completed",
+  "failed",
+]);
+
+export const machineBackups = pgTable(
+  "machine_backups",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    provisionId: uuid("provision_id")
+      .references(() => userProvisionDetails.id, { onDelete: "set null" }),
+    machineName: varchar("machine_name", { length: 255 }).notNull(),
+    status: machineBackupStatusEnum("status").default("pending").notNull(),
+    trigger: varchar("trigger", { length: 50 }).notNull(),
+    snapshotPath: text("snapshot_path"),
+    s3Path: text("s3_path"),
+    sizeBytes: bigint("size_bytes", { mode: "number" }).default(0).notNull(),
+    error: text("error"),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("idx_machine_backups_user_id").on(table.userId),
+    index("idx_machine_backups_organization_id").on(table.organizationId),
+    index("idx_machine_backups_provision_id").on(table.provisionId),
+    index("idx_machine_backups_machine_name").on(table.machineName),
+    index("idx_machine_backups_status").on(table.status),
+    index("idx_machine_backups_created_at").on(table.createdAt),
+  ],
+);
+
+export const machineBackupsRelations = relations(machineBackups, ({ one }) => ({
+  user: one(user, {
+    fields: [machineBackups.userId],
+    references: [user.id],
+  }),
+  organization: one(organization, {
+    fields: [machineBackups.organizationId],
+    references: [organization.id],
+  }),
+  provisionDetails: one(userProvisionDetails, {
+    fields: [machineBackups.provisionId],
+    references: [userProvisionDetails.id],
   }),
 }));
