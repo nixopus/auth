@@ -260,6 +260,27 @@
       "when": 1774483200000,
       "tag": "0037_add_mcp_servers",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1774555799805,
+      "tag": "0038_glamorous_cerebro",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1774722228936,
+      "tag": "0039_add_ssh_key_is_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1774798216968,
+      "tag": "0040_free_charles_xavier",
+      "breakpoints": true
     }
   ]
 }
