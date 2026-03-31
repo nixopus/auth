@@ -2272,3 +2272,27 @@ export const machineBackupsRelations = relations(machineBackups, ({ one }) => ({
     references: [userProvisionDetails.id],
   }),
 }));
+
+export const cliInstallations = pgTable(
+  "cli_installations",
+  {
+    id: uuid("id")
+      .default(sql`gen_random_uuid()`)
+      .primaryKey(),
+    eventType: varchar("event_type", { length: 30 }).notNull(),
+    os: varchar("os", { length: 50 }).notNull().default("unknown"),
+    arch: varchar("arch", { length: 10 }).notNull().default("unknown"),
+    version: varchar("version", { length: 20 }).notNull(),
+    duration: integer("duration").notNull().default(0),
+    error: varchar("error", { length: 200 }),
+    ipHash: varchar("ip_hash", { length: 64 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_cli_installations_created_at").on(table.createdAt),
+    index("idx_cli_installations_ip_hash").on(table.ipHash),
+    index("idx_cli_installations_event_type").on(table.eventType),
+  ],
+);
