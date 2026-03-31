@@ -255,6 +255,13 @@
       "breakpoints": true
     },
     {
+      "idx": 36,
+      "version": "7",
+      "when": 1774400000000,
+      "tag": "0036_add_organization_id_to_smtp_configs",
+      "breakpoints": true
+    },
+    {
       "idx": 37,
       "version": "7",
       "when": 1774483200000,

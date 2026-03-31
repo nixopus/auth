@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
@@ -79,6 +79,17 @@ async function createMachineBillingEntry(organizationId: string, sshKeyId: strin
   }
 }
 
+async function patchSessionOrganization(userId: string, organizationId: string): Promise<void> {
+  try {
+    const result = await db.update(schema.session)
+      .set({ activeOrganizationId: organizationId })
+      .where(and(eq(schema.session.userId, userId), isNull(schema.session.activeOrganizationId)));
+    logger.debug({ userId, organizationId, updated: result.rowCount }, 'patched session activeOrganizationId');
+  } catch (err) {
+    logger.error({ err, userId, organizationId }, 'failed to patch session activeOrganizationId');
+  }
+}
+
 async function loadSSHCredentials(userId: string, organizationId: string, userEmail: string): Promise<void> {
   if (!config.selfHosted) return;
 
@@ -149,6 +160,8 @@ export async function setupNewUser(user: { id: string; email: string; name: stri
     });
 
     logger.info({ orgId, orgName, email: user.email }, 'created default organization');
+
+    await patchSessionOrganization(user.id, orgId);
 
     try {
       const credited = await creditInternalWallet(
