@@ -36,6 +36,9 @@ export const config = {
   // Required for production, should be set via DATABASE_URL environment variable
   databaseUrl: process.env.DATABASE_URL || '',
 
+  // Redis URL for session caching (secondary storage)
+  redisUrl: process.env.REDIS_URL || '',
+
   // Auth service configuration
   betterAuthUrl: process.env.AUTH_SERVICE_URL || `http://localhost:${parseInt(process.env.PORT || '8080', 10)}`,
   betterAuthSecret: process.env.AUTH_SERVICE_SECRET || 'better-auth-secret-change-in-production',

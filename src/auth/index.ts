@@ -5,6 +5,8 @@ import { defaultRoles } from 'better-auth/plugins/organization/access';
 import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
 import { oauthProvider } from '@better-auth/oauth-provider';
+import { redisStorage } from '@better-auth/redis-storage';
+import { Redis } from 'ioredis';
 import {
   dodopayments,
   checkout,
@@ -33,6 +35,7 @@ export const auth = betterAuth({
     provider: 'pg',
     schema,
   }),
+  ...(config.redisUrl ? { secondaryStorage: redisStorage({ client: new Redis(config.redisUrl) }) } : {}),
   baseURL: config.corsAllowedOrigins[0] || config.betterAuthUrl,
   basePath: '/api/auth',
   secret: config.betterAuthSecret,
@@ -191,6 +194,11 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 7,
     updateAge: 60 * 60 * 24,
     storeSessionInDatabase: true,
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+      strategy: 'compact',
+    },
   },
   hooks: {
     before: beforeHook,
