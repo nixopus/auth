@@ -288,6 +288,13 @@
       "when": 1774798216968,
       "tag": "0040_free_charles_xavier",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1775751510889,
+      "tag": "0041_illegal_power_man",
+      "breakpoints": true
     }
   ]
 }

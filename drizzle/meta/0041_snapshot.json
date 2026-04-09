@@ -1,6 +1,6 @@
 {
-  "id": "d711d45a-422c-4d40-b5ac-91a4e84446e8",
-  "prevId": "330b90e8-b4d5-4556-88c3-a56fc9a336f0",
+  "id": "48af1b72-037c-4e66-a014-50338b3c6cd3",
+  "prevId": "d711d45a-422c-4d40-b5ac-91a4e84446e8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -6971,6 +6971,14 @@
           "primaryKey": false,
           "notNull": false
         },
+        "type": {
+          "name": "type",
+          "type": "provision_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'trial'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -7032,8 +7040,8 @@
           "method": "btree",
           "with": {}
         },
-        "idx_user_provision_details_user_org_unique": {
-          "name": "idx_user_provision_details_user_org_unique",
+        "idx_user_provision_details_user_org_trial_unique": {
+          "name": "idx_user_provision_details_user_org_trial_unique",
           "columns": [
             {
               "expression": "user_id",
@@ -7049,6 +7057,7 @@
             }
           ],
           "isUnique": true,
+          "where": "type = 'trial'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -7676,6 +7685,15 @@
         "SETUP_SSH_FORWARDING",
         "VERIFYING_SSH",
         "COMPLETED"
+      ]
+    },
+    "public.provision_type": {
+      "name": "provision_type",
+      "schema": "public",
+      "values": [
+        "trial",
+        "managed",
+        "user_owned"
       ]
     },
     "public.status": {

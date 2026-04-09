@@ -38,6 +38,12 @@ export const provisionStepEnum = pgEnum("provision_step", [
   "COMPLETED",
 ]);
 
+export const provisionTypeEnum = pgEnum("provision_type", [
+  "trial",
+  "managed",
+  "user_owned",
+]);
+
 export const user = pgTable("user", {
   id: uuid("id")
     .default(sql`pg_catalog.gen_random_uuid()`)
@@ -1907,6 +1913,7 @@ export const userProvisionDetails = pgTable(
     domain: varchar("domain", { length: 255 }),
     step: provisionStepEnum("step"),
     error: text("error"),
+    type: provisionTypeEnum("type").default("trial").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -1919,10 +1926,9 @@ export const userProvisionDetails = pgTable(
     index("idx_user_provision_details_user_id").on(table.userId),
     index("idx_user_provision_details_organization_id").on(table.organizationId),
     index("idx_user_provision_details_ssh_key_id").on(table.sshKeyId),
-    uniqueIndex("idx_user_provision_details_user_org_unique").on(
-      table.userId,
-      table.organizationId,
-    ),
+    uniqueIndex("idx_user_provision_details_user_org_trial_unique")
+      .on(table.userId, table.organizationId)
+      .where(sql`type = 'trial'`),
   ],
 );
 
