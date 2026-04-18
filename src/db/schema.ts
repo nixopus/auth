@@ -1914,6 +1914,11 @@ export const userProvisionDetails = pgTable(
     step: provisionStepEnum("step"),
     error: text("error"),
     type: provisionTypeEnum("type").default("trial").notNull(),
+    serverId: uuid("server_id"),
+    guestIp: text("guest_ip"),
+    vcpuCount: integer("vcpu_count").default(0).notNull(),
+    memoryMb: integer("memory_mb").default(0).notNull(),
+    diskSizeGb: integer("disk_size_gb").default(0).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
