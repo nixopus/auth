@@ -1,4 +1,4 @@
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { db } from '../db/index.js';
 import * as schema from '../db/schema.js';
@@ -81,13 +81,17 @@ async function createMachineBillingEntry(organizationId: string, sshKeyId: strin
 
 async function createUserOwnedProvisionRecord(userId: string, organizationId: string, sshKeyId: string): Promise<void> {
   try {
-    await db.insert(schema.userProvisionDetails).values({
-      userId,
-      organizationId,
-      sshKeyId,
-      type: 'user_owned',
-      step: 'COMPLETED',
-    });
+    await db.execute(sql`
+      INSERT INTO user_provision_details (user_id, organization_id, ssh_key_id, type, step, guest_ip)
+      VALUES (
+        ${userId}::uuid,
+        ${organizationId}::uuid,
+        ${sshKeyId}::uuid,
+        'user_owned',
+        'COMPLETED',
+        ${config.sshHost || null}
+      )
+    `);
     logger.info({ userId, organizationId, sshKeyId }, 'created user_owned provision record');
   } catch (err) {
     logger.error({ err, userId, organizationId, sshKeyId }, 'failed to create user_owned provision record');
