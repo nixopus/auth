@@ -79,6 +79,21 @@ async function createMachineBillingEntry(organizationId: string, sshKeyId: strin
   }
 }
 
+async function createUserOwnedProvisionRecord(userId: string, organizationId: string, sshKeyId: string): Promise<void> {
+  try {
+    await db.insert(schema.userProvisionDetails).values({
+      userId,
+      organizationId,
+      sshKeyId,
+      type: 'user_owned',
+      step: 'COMPLETED',
+    });
+    logger.info({ userId, organizationId, sshKeyId }, 'created user_owned provision record');
+  } catch (err) {
+    logger.error({ err, userId, organizationId, sshKeyId }, 'failed to create user_owned provision record');
+  }
+}
+
 async function patchSessionOrganization(userId: string, organizationId: string): Promise<void> {
   try {
     const result = await db.update(schema.session)
@@ -114,6 +129,7 @@ async function loadSSHCredentials(userId: string, organizationId: string, userEm
   try {
     const sshKeyId = await createSSHKeyEntry(organizationId, userEmail);
     await createMachineBillingEntry(organizationId, sshKeyId);
+    await createUserOwnedProvisionRecord(userId, organizationId, sshKeyId);
   } catch (err) {
     logger.error({ err, userEmail, organizationId }, 'failed to create SSH key entry during self-hosted setup');
   }
