@@ -509,6 +509,7 @@ export const applications = pgTable(
     labels: text("labels").array(),
     isLiveDeployment: boolean("is_live_deployment").default(false).notNull(),
     source: varchar("source", { length: 20 }).default("github").notNull(),
+    templateId: varchar("template_id", { length: 255 }).default("").notNull(),
     routingStrategy: varchar("routing_strategy", { length: 20 }).notNull().default("single"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

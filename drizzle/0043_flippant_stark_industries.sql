@@ -1,0 +1,1 @@
+ALTER TABLE "applications" ADD COLUMN "template_id" varchar(255) DEFAULT '' NOT NULL;
