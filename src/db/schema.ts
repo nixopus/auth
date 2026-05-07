@@ -2308,3 +2308,62 @@ export const cliInstallations = pgTable(
     index("idx_cli_installations_event_type").on(table.eventType),
   ],
 );
+
+// ─── Agent Chat Threads & Messages ──────────────────────────────────────────
+
+export const agentThreads = pgTable(
+  "agent_threads",
+  {
+    id: text("id").primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default(""),
+    metadata: text("metadata").default("{}"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_agent_threads_user").on(table.userId),
+  ],
+);
+
+export const agentThreadsRelations = relations(agentThreads, ({ one, many }) => ({
+  user: one(user, {
+    fields: [agentThreads.userId],
+    references: [user.id],
+  }),
+  messages: many(agentMessages),
+}));
+
+export const agentMessages = pgTable(
+  "agent_messages",
+  {
+    id: text("id").primaryKey(),
+    threadId: text("thread_id")
+      .notNull()
+      .references(() => agentThreads.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    content: text("content").notNull().default(""),
+    toolCalls: text("tool_calls").default("[]"),
+    toolCallId: text("tool_call_id").default(""),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    seq: integer("seq").notNull(),
+  },
+  (table) => [
+    index("idx_agent_messages_thread_seq").on(table.threadId, table.seq),
+  ],
+);
+
+export const agentMessagesRelations = relations(agentMessages, ({ one }) => ({
+  thread: one(agentThreads, {
+    fields: [agentMessages.threadId],
+    references: [agentThreads.id],
+  }),
+}));
