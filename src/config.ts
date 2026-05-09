@@ -26,6 +26,7 @@ export const config = {
   isDevelopment: process.env.NODE_ENV !== 'production',
   selfHosted: process.env.SELF_HOSTED === 'true',
   adminEmail: process.env.ADMIN_EMAIL || '',
+  adminPassword: process.env.ADMIN_PASSWORD || '',
 
   // Server configuration
   port: parseInt(process.env.PORT || '9090', 10),
