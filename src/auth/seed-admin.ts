@@ -5,6 +5,7 @@ import { logger } from '../logger.js';
 import * as schema from '../db/schema.js';
 import { sql } from 'drizzle-orm';
 import { setupNewUser } from './index.js';
+import { hashPassword } from 'better-auth/crypto';
 
 export async function seedAdminUser(): Promise<void> {
   if (!config.adminEmail) return;
@@ -31,6 +32,22 @@ export async function seedAdminUser(): Promise<void> {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
+    if (config.adminPassword) {
+      const hashed = await hashPassword(config.adminPassword);
+      await db.insert(schema.account).values({
+        id: randomUUID(),
+        accountId: userId,
+        providerId: 'credential',
+        userId,
+        password: hashed,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      logger.debug({ userId }, 'setting up new user');
+    } else {
+      logger.warn({ email: config.adminEmail }, 'ADMIN_PASSWORD not set — credential account not created; admin cannot sign in with email/password');
+    }
 
     await setupNewUser({ id: userId, email: config.adminEmail, name });
 
